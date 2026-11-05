@@ -42,5 +42,5 @@ Ajustes recomendados antes de publicar:
 ## 3. Opciones para monetizar (opcional)
 
 - Pago único en la tienda.
-- Anuncios recompensados (por ejemplo, revivir o duplicar doblones) con AdMob (`@capacitor-community/admob`).
+- Anuncios recompensados (por ejemplo, revivir o duplicar Berries) con AdMob (`@capacitor-community/admob`).
 - Compras dentro de la app (piratas o aspectos cosméticos).

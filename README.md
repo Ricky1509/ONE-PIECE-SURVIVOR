@@ -23,7 +23,7 @@ npx serve .
 - **Enemigos:** soldados de la Armada, cangrejos, hombres-tiburón, capitanes y emboscadas cada 75 s
 - **Jefes:** Comodoro de Hierro (3:00), Rey Kraken (6:00), Almirante Tormenta (9:00)
 - **Recompensa:** sube con cada derrota; al final se muestra un cartel de "SE BUSCA" y se guarda el récord en el navegador
-- **Astillero (progreso permanente):** cada partida da doblones para comprar mejoras permanentes (vida, daño, recarga, velocidad, área, imán, armadura, regeneración, experiencia, más doblones y un bote salvavidas para revivir) y desbloquear piratas. Las mejoras se pueden reembolsar
+- **Astillero (progreso permanente):** cada partida da Berries para comprar mejoras permanentes (vida, daño, recarga, velocidad, área, imán, armadura, regeneración, experiencia, más Berries y un bote salvavidas para revivir) y desbloquear piratas. Las mejoras se pueden reembolsar
 - **App instalable (PWA):** desde el móvil, "Añadir a pantalla de inicio"; funciona sin conexión
 
 ## Estructura del proyecto
@@ -65,7 +65,7 @@ sprite: { src: 'sprites/mi-pirata.png', frames: 4, fps: 10, alto: 77, anclaY: 0.
 
 Si una imagen no existe o no carga, el juego usa el dibujo hecho con código y avisa en la consola del navegador. Para volver al dibujo, pon `sprite: null`.
 
-También puedes cambiar `nombre`, `descripcion`, `arma`, `precio` (doblones para desbloquear), `bonus` y estadísticas de enemigos (`vida`, `velocidad`, `dano`...), los nombres e iconos de armas y objetos, y en qué minuto salen los jefes.
+También puedes cambiar `nombre`, `descripcion`, `arma`, `precio` (Berries para desbloquear), `bonus` y estadísticas de enemigos (`vida`, `velocidad`, `dano`...), los nombres e iconos de armas y objetos, y en qué minuto salen los jefes.
 
 ### Volver a generar los sprites de ejemplo
 
@@ -81,7 +81,7 @@ Abre `index.html` con doble clic, o sirve la carpeta con `npx serve .`.
 
 ## Progreso entre partidas
 
-En `js/config.js`, el bloque `progreso` define cuántos doblones se ganan (por derribo, por segundo, por jefe y por victoria) y `mejoras` define cada mejora del Astillero: `valor` por nivel, `max` niveles y `precio` inicial (cada nivel cuesta `crecimientoPrecio` veces más).
+En `js/config.js`, el bloque `progreso` define cuántos Berries se ganan (por derribo, por segundo, por jefe y por victoria) y `mejoras` define cada mejora del Astillero: `valor` por nivel, `max` niveles y `precio` inicial (cada nivel cuesta `crecimientoPrecio` veces más).
 
 El progreso se guarda en el navegador (`localStorage`). Si se juega desde otro navegador o dispositivo, empieza de cero.
 

@@ -43,7 +43,7 @@ window.MDR_CONFIG = {
       nombre: 'Capitana Coral',
       descripcion: 'Espadachina temeraria. +20% de vida.',
       arma: 'sable',
-      precio: 0, // doblones para desbloquearlo (0 = disponible desde el inicio)
+      precio: 0, // Berries para desbloquearlo (0 = disponible desde el inicio)
       bonus: { vida: 1.2 },
       sprite: { src: 'sprites/coral.png', frames: 4, fps: 10, alto: 77, anclaY: 0.62 },
       dibujo: { color: '#b3261e', camisa: '#f5ecd7', piel: '#f3c89a', pelo: '#3b1f4a', peinado: 'largo', sombrero: 'tricornio', colorSombrero: '#22191a', pluma: '#e74c3c', abrigo: true, panuelo: '#f6c945' },
@@ -112,17 +112,17 @@ window.MDR_CONFIG = {
 
   // ---------------------------------------------------------------
   //  PROGRESO ENTRE PARTIDAS (Astillero)
-  //  Al terminar cada partida ganas doblones:
-  //    derribos × doblonesPorDerribo + segundos × doblonesPorSegundo
-  //    + jefes × doblonesPorJefe + (victoria ? doblonesPorVictoria : 0)
+  //  Al terminar cada partida ganas Berries:
+  //    derribos × berriesPorDerribo + segundos × berriesPorSegundo
+  //    + jefes × berriesPorJefe + (victoria ? berriesPorVictoria : 0)
   //  Cada mejora cuesta `precio` × crecimientoPrecio ^ nivel actual.
   //  `valor` es lo que suma cada nivel.
   // ---------------------------------------------------------------
   progreso: {
-    doblonesPorDerribo: 0.5,
-    doblonesPorSegundo: 0.35,
-    doblonesPorJefe: 250,
-    doblonesPorVictoria: 1000,
+    berriesPorDerribo: 0.5,
+    berriesPorSegundo: 0.35,
+    berriesPorJefe: 250,
+    berriesPorVictoria: 1000,
     crecimientoPrecio: 1.6,
   },
   mejoras: {
@@ -135,7 +135,7 @@ window.MDR_CONFIG = {
     armadura:    { nombre: 'Planchas de Hierro', icono: '🛡️', descripcion: '+1 armadura',            valor: 1,    max: 3, precio: 250 },
     regen:       { nombre: 'Cocinero de a Bordo', icono: '🍲', descripcion: '+0.2 vida por segundo',  valor: 0.2,  max: 4, precio: 120 },
     experiencia: { nombre: 'Cuaderno de Bitácora', icono: '📜', descripcion: '+8% experiencia',       valor: 0.08, max: 4, precio: 150 },
-    codicia:     { nombre: 'Cofre sin Fondo',  icono: '🪙', descripcion: '+10% doblones al terminar', valor: 0.10, max: 5, precio: 100 },
+    codicia:     { nombre: 'Cofre sin Fondo',  icono: '🪙', descripcion: '+10% Berries al terminar', valor: 0.10, max: 5, precio: 100 },
     revivir:     { nombre: 'Bote Salvavidas',  icono: '🛟', descripcion: 'Revives 1 vez por partida con 50% de vida', valor: 1, max: 1, precio: 1500 },
   },
 

@@ -68,9 +68,12 @@ const WIN_TIME = (CFG.duracionMinutos || 10) * 60;
 
 // ---------- Progreso permanente (Astillero) ----------
 const MEJORAS = CFG.mejoras || {};
-const PROG = Object.assign({ doblonesPorDerribo: 0.5, doblonesPorSegundo: 0.35, doblonesPorJefe: 250, doblonesPorVictoria: 1000, crecimientoPrecio: 1.6 }, CFG.progreso || {});
+const PROG = Object.assign({ berriesPorDerribo: 0.5, berriesPorSegundo: 0.35, berriesPorJefe: 250, berriesPorVictoria: 1000, crecimientoPrecio: 1.6 }, CFG.progreso || {});
 const SAVE_KEY = 'mdr_save';
-let SAVE = Object.assign({ doblones: 0, mejoras: {}, desbloqueados: [], partidas: 0, victorias: 0 }, store.get(SAVE_KEY, {}));
+let SAVE = Object.assign({ berries: 0, mejoras: {}, desbloqueados: [], partidas: 0, victorias: 0 }, store.get(SAVE_KEY, {}));
+// Migración: partidas guardadas antes de renombrar la moneda a Berries
+if (SAVE.doblones) { SAVE.berries = (SAVE.berries || 0) + SAVE.doblones; }
+delete SAVE.doblones;
 function saveGame() { store.set(SAVE_KEY, SAVE); }
 const ml = k => Math.min(SAVE.mejoras[k] || 0, (MEJORAS[k] || {}).max || 0);   // nivel comprado
 const pm = k => ml(k) * ((MEJORAS[k] || {}).valor || 0);                         // efecto total
@@ -749,11 +752,11 @@ function setTopBtns(v) { $('#topbtns').style.display = v ? 'flex' : 'none'; }
 function refreshBest() {
   const b = store.get('mdr_best', null);
   $('#best').textContent = b ? `Mayor recompensa: 💰 ${fmt(b.bounty)} (${b.name})` : '';
-  $('#gold').textContent = `🪙 ${fmt(SAVE.doblones)} doblones` + (SAVE.partidas ? ` · ${SAVE.partidas} partidas` : '');
+  $('#gold').textContent = `🪙 ${fmt(SAVE.berries)} Berries` + (SAVE.partidas ? ` · ${SAVE.partidas} partidas` : '');
 }
 function buildSelect() {
   const box = $('#chars'); box.innerHTML = '';
-  $('#selGold').textContent = `🪙 ${fmt(SAVE.doblones)}`;
+  $('#selGold').textContent = `🪙 ${fmt(SAVE.berries)}`;
   CHARS.forEach(ch => {
     const btn = document.createElement('button'); btn.className = 'card';
     const cv = document.createElement('canvas'); cv.width = 240; cv.height = 200; cv.style.width = '120px'; cv.style.height = '100px';
@@ -762,12 +765,12 @@ function buildSelect() {
     btn.insertAdjacentHTML('beforeend', `<div class="nm">${ch.name}</div><div class="lv">${WEAPONS[ch.weapon].icon} ${WEAPONS[ch.weapon].name}</div><div class="ds">${ch.desc}</div>`);
     if (isUnlocked(ch)) btn.onclick = () => startGame(ch);
     else {
-      const can = SAVE.doblones >= ch.price;
+      const can = SAVE.berries >= ch.price;
       btn.classList.add('locked'); if (!can) btn.classList.add('poor');
       btn.insertAdjacentHTML('beforeend', `<div class="cost">🔒 ${can ? 'Desbloquear' : 'Necesitas'}: 🪙 ${fmt(ch.price)}</div>`);
       btn.onclick = () => {
-        if (SAVE.doblones < ch.price) return;
-        SAVE.doblones -= ch.price; SAVE.desbloqueados.push(ch.id); saveGame(); snd('chest'); buildSelect();
+        if (SAVE.berries < ch.price) return;
+        SAVE.berries -= ch.price; SAVE.desbloqueados.push(ch.id); saveGame(); snd('chest'); buildSelect();
       };
     }
     box.appendChild(btn);
@@ -775,23 +778,23 @@ function buildSelect() {
 }
 let shopFrom = 'menu';
 function buildShop() {
-  $('#shopGold').textContent = `🪙 ${fmt(SAVE.doblones)} doblones`;
+  $('#shopGold').textContent = `🪙 ${fmt(SAVE.berries)} Berries`;
   const box = $('#upg'); box.innerHTML = '';
   for (const k in MEJORAS) {
-    const m = MEJORAS[k], l = ml(k), maxed = l >= m.max, cost = maxed ? 0 : upgradeCost(k), can = !maxed && SAVE.doblones >= cost;
+    const m = MEJORAS[k], l = ml(k), maxed = l >= m.max, cost = maxed ? 0 : upgradeCost(k), can = !maxed && SAVE.berries >= cost;
     const b = document.createElement('button'); b.className = 'card upg' + (maxed ? ' maxed' : can ? '' : ' poor');
     b.innerHTML = `<div class="ic">${m.icono}</div><div class="nm">${m.nombre}</div>
       <div class="pips">${'<i class="on"></i>'.repeat(l)}${'<i></i>'.repeat(m.max - l)}</div>
       <div class="ds">${m.descripcion}</div><div class="cost">${maxed ? 'Máximo' : '🪙 ' + fmt(cost)}</div>`;
     b.onclick = () => {
-      if (maxed || SAVE.doblones < cost) return;
-      SAVE.doblones -= cost; SAVE.mejoras[k] = l + 1; saveGame(); snd('level'); buildShop();
+      if (maxed || SAVE.berries < cost) return;
+      SAVE.berries -= cost; SAVE.mejoras[k] = l + 1; saveGame(); snd('level'); buildShop();
     };
     box.appendChild(b);
   }
   let spent = 0; for (const k in MEJORAS) for (let i = 0; i < ml(k); i++) spent += costAt(k, i);
   const r = $('#bRefund'); r.disabled = spent === 0; r.textContent = spent ? `Reembolsar mejoras (+🪙 ${fmt(spent)})` : 'Reembolsar mejoras';
-  r.onclick = () => { if (!spent) return; SAVE.doblones += spent; SAVE.mejoras = {}; saveGame(); buildShop(); };
+  r.onclick = () => { if (!spent) return; SAVE.berries += spent; SAVE.mejoras = {}; saveGame(); buildShop(); };
 }
 function openShop(from) { shopFrom = from; hide(from); buildShop(); show('shop'); state = 'shop'; }
 function closeShop() { hide('shop'); if (shopFrom === 'over') { show('over'); state = 'over'; } else { refreshBest(); show('menu'); state = 'menu'; } }
@@ -860,9 +863,9 @@ function endGame(won) {
   const best = store.get('mdr_best', null);
   const record = !best || G.bounty > best.bounty;
   if (record) store.set('mdr_best', { bounty: G.bounty, name: G.ch.name });
-  const base = G.kills * PROG.doblonesPorDerribo + G.t * PROG.doblonesPorSegundo + G.bosses * PROG.doblonesPorJefe + (won ? PROG.doblonesPorVictoria : 0);
+  const base = G.kills * PROG.berriesPorDerribo + G.t * PROG.berriesPorSegundo + G.bosses * PROG.berriesPorJefe + (won ? PROG.berriesPorVictoria : 0);
   G.gold = Math.floor(base * (1 + pm('codicia')));
-  SAVE.doblones += G.gold; SAVE.partidas++; if (won) SAVE.victorias++; saveGame();
+  SAVE.berries += G.gold; SAVE.partidas++; if (won) SAVE.victorias++; saveGame();
   const pc = $('#portrait'), c2 = pc.getContext('2d');
   c2.setTransform(1, 0, 0, 1, 0, 0); c2.fillStyle = '#d9c18c'; c2.fillRect(0, 0, 220, 180);
   c2.fillStyle = 'rgba(120,80,30,.15)'; for (let i = 0; i < 40; i++) c2.fillRect(Math.random() * 220, Math.random() * 180, 2, 2);
@@ -871,7 +874,7 @@ function endGame(won) {
   $('#oBounty').textContent = '💰 ' + fmt(G.bounty);
   $('#oStats').textContent = `Tiempo ${mmss(G.t)} · Nivel ${G.p.lvl} · Derribados ${fmt(G.kills)} · Jefes ${G.bosses}`;
   $('#oMsg').textContent = (won ? '¡Sobreviviste 10 minutos! Eres la leyenda de los mares.' : 'Has caído… pero tu leyenda crece.') + (record ? ' ¡Nueva recompensa récord!' : '');
-  $('#oGold').textContent = `+${fmt(G.gold)} 🪙 doblones · Total: ${fmt(SAVE.doblones)}`;
+  $('#oGold').textContent = `+${fmt(G.gold)} 🪙 Berries · Total: ${fmt(SAVE.berries)}`;
   setTimeout(() => show('over'), won ? 200 : 500);
 }
 
