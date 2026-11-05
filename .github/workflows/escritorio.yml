@@ -36,6 +36,13 @@ jobs:
       - name: Empaquetar en .zip
         shell: pwsh
         run: Compress-Archive -Path "dist/win-unpacked/*" -DestinationPath "dist/MarDeRecompensas-Windows.zip" -Force
+      - name: Empaquetar versión web para itch.io
+        shell: pwsh
+        working-directory: .
+        run: |
+          New-Item -ItemType Directory -Force -Path itch | Out-Null
+          Copy-Item -Recurse index.html, manifest.webmanifest, sw.js, js, sprites, icons -Destination itch
+          Compress-Archive -Path "itch/*" -DestinationPath "desktop/dist/MarDeRecompensas-Web.zip" -Force
       - name: Crear MarDeRecompensas.exe portable (con reintentos)
         continue-on-error: true
         run: |
@@ -48,7 +55,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          NOTAS="Versión para Windows de Mar de Recompensas (commit ${GITHUB_SHA::7}). MarDeRecompensas.exe: se abre directamente, sin instalar. MarDeRecompensas-Windows.zip: descomprímelo y abre 'Mar de Recompensas.exe'. Se actualiza sola con cada cambio del juego."
+          NOTAS="Mar de Recompensas (commit ${GITHUB_SHA::7}). MarDeRecompensas.exe: Windows, se abre directamente. MarDeRecompensas-Windows.zip: descomprímelo y abre 'Mar de Recompensas.exe'. MarDeRecompensas-Web.zip: versión web lista para subir a itch.io (HTML). Se actualiza sola con cada cambio del juego."
           # Reintenta ante errores temporales de la API de GitHub (500/502/503)
           intentar() { for i in 1 2 3 4 5; do "$@" && return 0; echo "Fallo temporal ($i). Reintentando en $((i*15)) s..."; sleep $((i*15)); done; return 1; }
           if gh release view escritorio >/dev/null 2>&1; then
@@ -57,4 +64,5 @@ jobs:
             intentar gh release create escritorio --title "Mar de Recompensas para Windows" --notes "$NOTAS" --latest
           fi
           intentar gh release upload escritorio dist/MarDeRecompensas-Windows.zip --clobber
+          intentar gh release upload escritorio dist/MarDeRecompensas-Web.zip --clobber
           if [ -f dist/MarDeRecompensas.exe ]; then intentar gh release upload escritorio dist/MarDeRecompensas.exe --clobber; fi
