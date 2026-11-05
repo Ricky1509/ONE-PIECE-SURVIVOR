@@ -103,3 +103,20 @@ El progreso se guarda en el navegador (`localStorage`). Si se juega desde otro n
 ## Publicar en tiendas (iOS, Android, PC)
 
 Ver [docs/TIENDAS.md](docs/TIENDAS.md).
+
+## Versión para PC (Windows)
+
+Descarga directa: **[MarDeRecompensas.exe](https://github.com/Ricky1509/ONE-PIECE-SURVIVOR/releases/download/escritorio/MarDeRecompensas.exe)**. No necesita instalación: se descarga y se abre.
+
+- Windows puede mostrar el aviso "Windows protegió tu PC" porque el programa no está firmado: pulsa *Más información → Ejecutar de todas formas*.
+- **F11** activa la pantalla completa. El progreso se guarda en el propio PC.
+- Se compila automáticamente en GitHub Actions (`.github/workflows/escritorio.yml`) cada vez que cambia el juego en `main`, y se publica en la página de descargas (*Releases → escritorio*).
+
+Para compilarlo a mano (necesita Node.js):
+
+```bash
+cd desktop
+npm install
+npm start      # probar en una ventana
+npm run dist   # crear dist/MarDeRecompensas.exe (en Windows)
+```
