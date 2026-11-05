@@ -1,4 +1,4 @@
-// Versión de escritorio (Windows) de Mar de Recompensas con Electron.
+// Versión de escritorio (Windows) de Faro de Tormentas con Electron.
 // Carga el juego desde app/ (copiado por preparar.js) en una ventana sin menús.
 const { app, BrowserWindow, shell } = require('electron');
 const path = require('path');
@@ -10,7 +10,7 @@ function crearVentana() {
     minWidth: 800,
     minHeight: 560,
     backgroundColor: '#0b2a47',
-    title: 'Mar de Recompensas',
+    title: 'Faro de Tormentas',
     icon: path.join(__dirname, 'app', 'icons', 'icon-512.png'),
     autoHideMenuBar: true,
     webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
