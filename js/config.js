@@ -75,7 +75,7 @@ window.MDR_CONFIG = {
     regenEnergia: 1.5,          // por segundo
     probConcha: 0.05,           // probabilidad de que un enemigo suelte una concha resonante (+20)
     rangos: ['Grumete', 'Marinero', 'Oficial', 'Capitán', 'Leyenda'],
-    puntosRango: [0, 300, 1000, 2500, 6000],
+    puntosRango: [0, 1000, 4000, 10000, 24000],
     juramentos: [
       'Navegaré junto a mi tripulación, pase lo que pase.',
       'No dejaré a nadie atrás en la tormenta.',
@@ -270,7 +270,7 @@ window.MDR_CONFIG = {
 
   // Orden y minuto de aparición de los jefes
   jefes: [
-    { tipo: 'comodoro', minuto: 3 },
+    { tipo: 'comodoro', minuto: 3.5 },
     { tipo: 'kraken', minuto: 6 },
     { tipo: 'almirante', minuto: 9 },
   ],
@@ -310,7 +310,7 @@ window.MDR_CONFIG = {
   //          | area | recarga | curacion | todo   ·   peso: probabilidad relativa (1 por defecto)
   // ---------------------------------------------------------------
   probabilidadFruta: 0.004,       // por enemigo normal
-  probabilidadFrutaCapitan: 0.08, // por capitán de la Armada
+  probabilidadFrutaCapitan: 0.03, // por capitán de la Armada
   frutas: {
     dorada: { nombre: 'Fruta Dorada', descripcion: 'Doble de experiencia', efecto: 'experiencia', valor: 2,   duracion: 20, color: '#f6c945' },
     furia:  { nombre: 'Fruta Furia',  descripcion: '+50% de daño',         efecto: 'dano',        valor: 1.5, duracion: 15, color: '#e74c3c' },
@@ -427,11 +427,11 @@ window.MDR_CONFIG = {
     ancla:   { nombre: 'Ancla Giratoria', icono: '⚓', niveles: ['Un ancla gira a tu alrededor', '+1 ancla', '+30% daño y radio', '+1 ancla', '+1 ancla y gira más rápido'] },
     canon:   { nombre: 'Cañonazo', icono: '💣', niveles: ['Bala de cañón explosiva', '+1 bala', '+40% área de explosión', '+1 bala, +30% daño', '+2 balas'] },
     fuego:   { nombre: 'Fruta Ígnea', icono: '🔥', niveles: ['Aura de fuego que quema', '+25% radio', '+40% daño', '+25% radio', 'Quema el doble de rápido'] },
-    hielo:   { nombre: 'Fruta Glacial', icono: '❄️', niveles: ['Fragmentos de hielo en círculo que ralentizan', '+2 fragmentos', '+40% daño', '+2 fragmentos, ralentizan más tiempo', 'Congela: ralentiza un 80%'] },
+    hielo:   { nombre: 'Fruta Glacial', icono: '❄️', niveles: ['Fragmentos de hielo en círculo que ralentizan', '+2 fragmentos', '+40% daño y atraviesan a un enemigo', '+2 fragmentos, ralentizan más tiempo', 'Congela: ralentiza un 80%'] },
     arpon:   { nombre: 'Arpón', icono: '🔱', niveles: ['Arpón que atraviesa y vuelve a tu mano', '+1 arpón', '+30% daño', '+1 arpón', 'Más rápido y de más alcance'] },
     tambor:  { nombre: 'Tambor de Guerra', icono: '🥁', niveles: ['Onda expansiva que empuja a los enemigos', '+25% radio', '+40% daño', '-20% recarga', 'Doble onda'] },
     cadena:  { nombre: 'Fruta Centella', icono: '🌩️', niveles: ['Un rayo salta de enemigo en enemigo', '+2 saltos', '+40% daño', '+2 saltos, -20% recarga', 'Lanza dos cadenas a la vez'] },
-    arena:   { nombre: 'Fruta Arena', icono: '⏳', niveles: ['Charcos de arena movediza que frenan y dañan', '+1 charco', '+30% tamaño', '+1 charco y +40% daño', 'Los charcos duran el doble'] },
+    arena:   { nombre: 'Fruta Arena', icono: '⏳', niveles: ['Charcos de arena movediza que frenan y dañan', '+1 charco', '+30% tamaño', '+1 charco y +40% daño', 'Los charcos duran un 50% más'] },
     espinas: { nombre: 'Fruta Espina', icono: '🌵', niveles: ['Espinas que brotan del suelo bajo los enemigos', '+2 espinas', '+40% daño', '+2 espinas, -20% recarga', 'Espinas el doble de grandes'] },
     burbuja: { nombre: 'Fruta Burbuja', icono: '🫧', niveles: ['Burbujas que atrapan a los enemigos', '+1 burbuja', '+50% daño y atrapan más tiempo', '+1 burbuja', 'Al estallar, dañan alrededor'] },
     viento:  { nombre: 'Fruta Vendaval', icono: '🌪️', niveles: ['Tornados que arrastran y golpean', '+1 tornado', '+30% tamaño y +40% daño', '+1 tornado', 'Los tornados duran el doble'] },

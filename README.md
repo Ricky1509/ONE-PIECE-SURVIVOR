@@ -127,6 +127,13 @@ npm start      # probar en una ventana
 npm run dist   # crear dist/FaroDeTormentas.exe (en Windows)
 ```
 
+## Ajustes, mando y pruebas
+
+- **⚙️ Ajustes** (portada y pausa): volumen de música y efectos, temblor de pantalla, destellos, números de daño e idioma.
+- **Mando:** stick o cruceta para moverse, X/LB y Y/RB para los poderes, Start para pausar, y A/B en los menús.
+- **Pruebas:** `node tests/i18n-check.js` (traducciones) y `node tests/smoke.js` (recorrido completo en Chromium; necesita Playwright). Se ejecutan solas en cada PR con `.github/workflows/pruebas.yml`.
+- Historial de cambios: `CHANGELOG.md`.
+
 ## Desarrollo con Claude Code (Game Studios)
 
 El repositorio incluye [Claude Code Game Studios](https://github.com/Donchitos/Claude-Code-Game-Studios) v1.2.0 (licencia MIT): 49 agentes (diseño, arte, audio, QA, producción…), 74 comandos y hooks de seguridad en `.claude/`. Se activa al abrir Claude Code **en la carpeta del repositorio**.

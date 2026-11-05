@@ -23,30 +23,47 @@ const store = {
 };
 
 // ---------- Sonido (sintetizado con Web Audio) ----------
-let AC = null, master = null, noiseBuf = null, muted = store.get('mdr_muted', false);
+let AC = null, master = null, sfxBus = null, musBus = null, musFilter = null, noiseBuf = null, muted = store.get('mdr_muted', false);
+// Ajustes del jugador (volumen, accesibilidad); se guardan en 'mdr_opts'
+const OPT = Object.assign({ music: 0.55, sfx: 0.8, shake: true, flashes: true, nums: true }, store.get('mdr_opts', {}) || {});
+for (const k of ['music', 'sfx']) OPT[k] = Math.max(0, Math.min(1, +OPT[k] || 0));
+for (const k of ['shake', 'flashes', 'nums']) OPT[k] = OPT[k] !== false;
+function saveOpts() { store.set('mdr_opts', OPT); }
+function applyVolumes() {
+  if (!AC) return;
+  const t0 = AC.currentTime;
+  master.gain.setTargetAtTime(muted ? 0 : 0.8, t0, 0.03);
+  sfxBus.gain.setTargetAtTime(OPT.sfx, t0, 0.03);
+  musBus.gain.setTargetAtTime(OPT.music * 0.5, t0, 0.05);
+}
 function initAudio() {
-  if (AC) return;
+  if (AC) { if (AC.state === 'suspended') AC.resume(); return; }
   try {
     AC = new (window.AudioContext || window.webkitAudioContext)();
     const comp = AC.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 6;
-    master = AC.createGain(); master.gain.value = 0.8; master.connect(comp); comp.connect(AC.destination);
+    master = AC.createGain(); master.connect(comp); comp.connect(AC.destination);
+    sfxBus = AC.createGain(); sfxBus.connect(master);
+    musFilter = AC.createBiquadFilter(); musFilter.type = 'lowpass'; musFilter.frequency.value = 18000; musFilter.connect(master);
+    musBus = AC.createGain(); musBus.connect(musFilter);
+    applyVolumes();
     noiseBuf = AC.createBuffer(1, AC.sampleRate, AC.sampleRate);
     const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    MUSIC.start();
   } catch (e) { AC = null; }
 }
 // tono con barrido de frecuencia
-function tone(type, f0, f1, dur, vol, delay = 0, attack = 0.004) {
-  const t = AC.currentTime + delay, o = AC.createOscillator(), g = AC.createGain();
+function tone(type, f0, f1, dur, vol, delay = 0, attack = 0.004, out = sfxBus, at = 0) {
+  const t = (at || AC.currentTime) + delay, o = AC.createOscillator(), g = AC.createGain();
   o.type = type; o.frequency.setValueAtTime(f0, t); if (f1 && f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
   g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + attack); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.03);
+  o.connect(g); g.connect(out); o.start(t); o.stop(t + dur + 0.03);
 }
 // ruido filtrado (disparos, explosiones, golpes, viento)
-function noise(dur, vol, type, f0, f1, q = 1, delay = 0, attack = 0.002) {
-  const t = AC.currentTime + delay, s = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
+function noise(dur, vol, type, f0, f1, q = 1, delay = 0, attack = 0.002, out = sfxBus, at = 0) {
+  const t = (at || AC.currentTime) + delay, s = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
   s.buffer = noiseBuf; f.type = type; f.Q.value = q; f.frequency.setValueAtTime(f0, t); if (f1 && f1 !== f0) f.frequency.exponentialRampToValueAtTime(f1, t + dur);
   g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + attack); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  s.connect(f); f.connect(g); g.connect(master); s.start(t, Math.random() * 0.4); s.stop(t + dur + 0.03);
+  s.connect(f); f.connect(g); g.connect(out); s.start(t, Math.random() * 0.4); s.stop(t + dur + 0.03);
 }
 let coinStep = 0, lastCoin = 0;
 const PENTA = [0, 2, 4, 7, 9];
@@ -92,6 +109,89 @@ function snd(name) {
   try { SFX[name].f(); } catch (e) {}
 }
 
+// ---------- Música procedural (adaptativa) ----------
+// Secuenciador con planificación anticipada: cada isla tiene su escala, tempo e
+// instrumento; la intensidad sube con el minuto de la partida y con los jefes.
+// En pausa y en las mejoras la música se apaga con un filtro (no se corta).
+const MUSIC_TEMAS = {
+  // raíz MIDI, modo (semitonos), tempo, onda del solista, progresión (grados), brillo
+  playa:    { root: 50, mode: [0, 2, 3, 5, 7, 9, 10], bpm: 112, lead: 'triangle', prog: [0, 3, 6, 4], bright: 1 },
+  jungla:   { root: 52, mode: [0, 2, 3, 5, 7, 9, 10], bpm: 118, lead: 'square', prog: [0, 6, 5, 6], bright: 0.9 },
+  desierto: { root: 50, mode: [0, 1, 4, 5, 7, 8, 10], bpm: 108, lead: 'sawtooth', prog: [0, 1, 0, 6], bright: 0.8 },
+  nieve:    { root: 55, mode: [0, 2, 4, 6, 7, 9, 11], bpm: 96, lead: 'sine', prog: [0, 4, 5, 3], bright: 1.2 },
+  volcan:   { root: 45, mode: [0, 1, 3, 5, 7, 8, 10], bpm: 124, lead: 'sawtooth', prog: [0, 5, 6, 0], bright: 0.7 },
+  fantasma: { root: 47, mode: [0, 2, 3, 5, 6, 8, 10], bpm: 100, lead: 'triangle', prog: [0, 5, 3, 4], bright: 0.75 },
+  tormenta: { root: 46, mode: [0, 2, 3, 5, 7, 8, 10], bpm: 128, lead: 'square', prog: [0, 5, 2, 6], bright: 0.85 },
+  cristal:  { root: 57, mode: [0, 2, 4, 6, 7, 9, 11], bpm: 104, lead: 'sine', prog: [0, 1, 4, 5], bright: 1.3 },
+  gruta:    { root: 48, mode: [0, 2, 3, 5, 7, 9, 10], bpm: 98, lead: 'triangle', prog: [0, 4, 5, 3], bright: 0.8 },
+};
+const MUSIC = (() => {
+  let timer = null, nextT = 0, step = 0, bar = 0, motif = [], motifTema = '';
+  const mf = m => 440 * Math.pow(2, (m - 69) / 12);
+  const temaActual = () => MUSIC_TEMAS[(G && G.isla && state !== 'menu' && state !== 'select' ? G.isla : ISLAS[islaSel]).tema] || MUSIC_TEMAS.playa;
+  // nota del modo: grado (puede pasar de 7) -> MIDI
+  const deg = (T, d) => T.root + T.mode[((d % 7) + 7) % 7] + 12 * Math.floor(d / 7);
+  function newMotif(T) {
+    // motivo de 16 semicorcheas: notas del acorde con pasos de escala y silencios
+    motif = []; let d = 4 + (Math.random() * 3 | 0);
+    for (let i = 0; i < 16; i++) {
+      if (i % 2 === 1 && Math.random() < 0.55) { motif.push(null); continue; }
+      d += [-2, -1, -1, 0, 1, 1, 2][Math.random() * 7 | 0]; d = Math.max(2, Math.min(11, d));
+      motif.push(d);
+    }
+    motifTema = T;
+  }
+  // 0 = menú tranquilo · 1..3 = partida · 4 = jefe
+  function intensity() {
+    if (!G || state === 'menu' || state === 'select') return 0;
+    if (G.enemies && G.enemies.some(e => e.boss && !e.dead)) return 4;
+    return 1 + Math.min(2, Math.floor(G.t / 200));
+  }
+  function playStep(t, T, lvl) {
+    const s16 = step % 16, chordDeg = T.prog[bar % T.prog.length], out = musBus, spb = 60 / (T.bpm * (lvl === 0 ? 0.8 : 1 + 0.04 * Math.min(lvl, 3))) / 4;
+    // pad: acorde largo al comenzar cada compás
+    if (s16 === 0) {
+      [0, 2, 4].forEach((k, i) => tone(lvl === 0 ? 'triangle' : 'sawtooth', mf(deg(T, chordDeg + k) + 12), 0, spb * 16, lvl === 0 ? 0.035 : 0.022, i * 0.01, spb * 3, out, t));
+    }
+    // bajo
+    const bassHits = lvl === 0 ? [0, 8] : lvl >= 3 ? [0, 3, 6, 8, 11, 14] : [0, 6, 8, 14];
+    if (bassHits.includes(s16)) tone('triangle', mf(deg(T, chordDeg) - 12), 0, spb * (lvl === 0 ? 6 : 2.2), lvl === 0 ? 0.09 : 0.13, 0, 0.01, out, t);
+    // solista: el motivo, transportado al acorde; en el menú solo una nota de cada dos
+    const md = motif[s16];
+    if (md != null && (lvl > 0 || s16 % 4 === 0)) {
+      const f = mf(deg(T, md + (chordDeg % 3)) + 12);
+      tone(T.lead, f, 0, spb * (lvl === 0 ? 3 : 1.6), (T.lead === 'sine' ? 0.06 : 0.035) * (lvl === 4 ? 1.2 : 1), 0, 0.006, out, t);
+      if (T.bright > 1) tone('sine', f * 2, 0, spb * 2, 0.015, spb * 0.5, 0.004, out, t); // eco de campanas (hielo, cristal)
+    }
+    if (lvl === 0) return;
+    // percusión
+    const kick = lvl === 4 ? s16 % 4 === 0 : (s16 === 0 || s16 === 8 || (lvl >= 3 && s16 === 10));
+    if (kick) { tone('sine', 120, 42, 0.22, lvl === 4 ? 0.32 : 0.24, 0, 0.003, out, t); }
+    if (s16 === 4 || s16 === 12) noise(0.16, lvl >= 2 ? 0.11 : 0.07, 'bandpass', 1800, 900, 0.8, 0, 0.002, out, t);
+    if (s16 % 2 === 0 && (lvl >= 2 || s16 % 4 === 2)) noise(0.035, 0.035, 'highpass', 8000, 8000, 1, 0, 0.001, out, t);
+    if (lvl === 4 && s16 % 8 === 6) tone('sawtooth', mf(deg(T, chordDeg) - 24), 0, spb * 2, 0.08, 0, 0.01, out, t);
+  }
+  function tick() {
+    if (!AC || AC.state !== 'running') return;
+    const T = temaActual(), lvl = intensity();
+    if (motifTema !== T) newMotif(T);
+    // en pausa / subida de nivel: filtro cerrado; si no, abierto
+    const calm = state === 'pause' || state === 'levelup' || state === 'over';
+    musFilter.frequency.setTargetAtTime(calm ? 700 : 18000, AC.currentTime, 0.15);
+    if (nextT < AC.currentTime) nextT = AC.currentTime + 0.05;
+    const spb = 60 / (T.bpm * (lvl === 0 ? 0.8 : 1 + 0.04 * Math.min(lvl, 3))) / 4;
+    while (nextT < AC.currentTime + 0.25) {
+      if (OPT.music > 0 && !muted) { try { playStep(nextT, T, lvl); } catch (e) {} }
+      nextT += spb; step++;
+      if (step % 16 === 0) { bar++; if (bar % 8 === 0) newMotif(T); }
+    }
+  }
+  return {
+    start() { if (!timer) timer = setInterval(tick, 60); },
+    stop() { clearInterval(timer); timer = null; },
+  };
+})();
+
 // ---------- Datos (desde js/config.js) ----------
 const CFG = window.MDR_CONFIG;
 const CHARS = CFG.personajes.map(c => ({
@@ -113,10 +213,43 @@ const WIN_TIME = (CFG.duracionMinutos || 10) * 60;
 const MEJORAS = CFG.mejoras || {};
 const PROG = Object.assign({ berriesPorDerribo: 0.5, berriesPorSegundo: 0.35, berriesPorJefe: 250, berriesPorVictoria: 1000, crecimientoPrecio: 1.6 }, CFG.progreso || {});
 const SAVE_KEY = 'mdr_save';
-let SAVE = Object.assign({ berries: 0, mejoras: {}, desbloqueados: [], partidas: 0, victorias: 0 }, store.get(SAVE_KEY, {}));
-// Migración: partidas guardadas antes de renombrar la moneda a Doblones de Faro
-if (SAVE.doblones) { SAVE.berries = (SAVE.berries || 0) + SAVE.doblones; }
-delete SAVE.doblones;
+/**
+ * Valida un guardado leído de localStorage: tipos, rangos e ids que existen en la
+ * configuración. Un guardado roto o editado a mano nunca debe impedir jugar.
+ * Migra también el campo antiguo `doblones` (antes de renombrar la moneda).
+ */
+function sanitizeSave(raw) {
+  const obj = v => v && typeof v === 'object' && !Array.isArray(v) ? v : {};
+  const num = (v, max = 1e12) => { v = +v; return Number.isFinite(v) ? Math.max(0, Math.min(max, v)) : 0; };
+  const int = (v, max) => Math.floor(num(v, max));
+  const ids = (v, ok) => Array.isArray(v) ? [...new Set(v.filter(x => typeof x === 'string' && ok(x)))] : [];
+  const s = obj(raw), C = CFG.cofre || {}, MJ = CFG.mejoras || {}, TS = CFG.tesoros || {}, EN = CFG.enemigos || {};
+  const set = a => new Set((a || []).map(x => x.id));
+  const chars = set(CFG.personajes), mis = set(CFG.misiones), isl = set(CFG.islas), ords = set(CFG.ordenes);
+  const map = (o, ok, f) => { const r = {}; for (const [k, v] of Object.entries(obj(o))) if (ok(k)) r[k] = f(v, k); return r; };
+  const out = {
+    berries: int(s.berries) + int(s.doblones), partidas: int(s.partidas), victorias: int(s.victorias),
+    tiradas: int(s.tiradas), pity: int(s.pity, 1e4),
+    mejoras: map(s.mejoras, k => MJ[k], (v, k) => int(v, MJ[k].max || 0)),
+    desbloqueados: ids(s.desbloqueados, id => chars.has(id)), cobradas: ids(s.cobradas, id => mis.has(id)),
+    inv: {}, islas: map(s.islas, k => isl.has(k), v => int(v, 86400)),
+    islaSel: int(s.islaSel, Math.max(0, (CFG.islas || []).length - 1)),
+    ordenes: map(s.ordenes, k => ords.has(k), v => ({ pts: int(obj(v).pts) })),
+    ordenDesb: ids(s.ordenDesb, id => ords.has(id)),
+    ordenSel: ords.has(s.ordenSel) ? s.ordenSel : undefined,
+  };
+  for (const [k, v] of Object.entries(obj(s.inv))) { const l = int(v, C.nivelMax || 5); if (TS[k] && l > 0) out.inv[k] = l; }
+  out.equip = ids(s.equip, id => !!out.inv[id]).slice(0, C.ranuras || 3);
+  const st = obj(s.stats), cnt = o => map(o, k => EN[k], v => int(v));
+  out.stats = {
+    derribos: int(st.derribos), mejorTiempo: int(st.mejorTiempo, 86400), mejorNivel: int(st.mejorNivel, 1e6),
+    frutas: int(st.frutas), jefes: cnt(st.jefes), porTipo: cnt(st.porTipo), piratas: ids(st.piratas, id => chars.has(id)),
+    maxArmas: int(st.maxArmas, 6), mejorRecompensa: num(st.mejorRecompensa, 1e15), tormentas: int(st.tormentas),
+    mejorasCompradas: int(st.mejorasCompradas),
+  };
+  const r = Object.assign({}, s, out); delete r.doblones; return r;
+}
+let SAVE = sanitizeSave(store.get(SAVE_KEY, {}));
 function saveGame() { store.set(SAVE_KEY, SAVE); }
 const ml = k => Math.min(SAVE.mejoras[k] || 0, (MEJORAS[k] || {}).max || 0);   // nivel comprado
 const pm = k => ml(k) * ((MEJORAS[k] || {}).valor || 0);                         // efecto total
@@ -169,7 +302,7 @@ function misionProgreso(m) {
     case 'nivel': return st.mejorNivel;
     case 'frutas': return st.frutas;
     case 'piratas': return st.piratas.length;
-    case 'mejoras': return st.mejorasCompradas;
+    case 'mejoras': return Object.values(SAVE.mejoras).reduce((a, b) => a + b, 0);
     case 'armas': return st.maxArmas;
     case 'recompensa': return st.mejorRecompensa;
     case 'tiradas': return SAVE.tiradas;
@@ -267,7 +400,7 @@ function recalc() {
   const c = G.ch.bonus || {}, lv = k => G.passives[k] || 0, old = G.st;
   G.st = {
     might: (1 + 0.1 * lv('polvora')) * (1 + pm('dano') + ib('dano') + rs('dano')) * buffMul('dano'),
-    cd: (c.cooldown || 1) * (1 - 0.08 * lv('reloj')) * Math.max(0.3, 1 - pm('recarga') - ib('recarga') - rs('recarga')) * buffMul('recarga'),
+    cd: Math.max(0.25, (c.cooldown || 1) * (1 - 0.08 * lv('reloj')) * Math.max(0.3, 1 - pm('recarga') - ib('recarga') - rs('recarga'))) * buffMul('recarga'),
     area: (c.area || 1) * (1 + 0.1 * lv('catalejo')) * (1 + pm('area') + ib('area') + rs('area')) * buffMul('area'),
     amount: lv('loro'),
     speed: 150 * (c.speed || 1) * (1 + 0.1 * lv('botas')) * (1 + pm('velocidad') + ib('velocidad') + rs('velocidad')) * buffMul('velocidad') * (G.pt && G.pt.carga > 0 ? 1.4 : 1),
@@ -439,12 +572,13 @@ function usePower(i) {
   if (G.pcd[i] > 0 || G.res < pwCost(pw)) { snd('nope'); return; }
   G.res -= pwCost(pw); G.pcd[i] = pwCd(pw);
   POWERS[pw.id](); snd('power');
+  if (pw.id === 'velo') G.pcd[i] += G.pt.velo || 0; // la recarga empieza al acabar la invisibilidad
 }
 // Temporizadores de efectos, zonas en el suelo y espinas (comunes a armas y órdenes)
 function updateCommon(dt) {
   const p = G.p;
   let rc = false;
-  for (const k in G.pt) if (G.pt[k] > 0) { G.pt[k] -= dt; if (G.pt[k] <= 0) { G.pt[k] = 0; if (k === 'escudo') G.shield = 0; if (k === 'brasas' || k === 'roca' || k === 'carga') rc = true; } }
+  for (const k in G.pt) if (k !== 'replica' && G.pt[k] > 0) { G.pt[k] -= dt; if (G.pt[k] <= 0) { G.pt[k] = 0; if (k === 'escudo') G.shield = 0; if (k === 'brasas' || k === 'roca' || k === 'carga') rc = true; } }
   if (rc) recalc();
   for (const z of G.zones) {
     z.t -= dt; if (z.follow) { z.x = p.x; z.y = p.y; }
@@ -471,7 +605,7 @@ function updateOrden(dt) {
   G.res = Math.min(resMax(), G.res + (OS.regenEnergia + 0.5 * ou('res')) * dt);
   G.pcd[0] = Math.max(0, G.pcd[0] - dt); G.pcd[1] = Math.max(0, G.pcd[1] - dt);
   if (G.healT > 0) { G.healT -= dt; p.hp = Math.min(G.st.maxHp, p.hp + G.healRate * dt); }
-  if (G.pt.replica > 0 && G.pt.replica - dt <= 0) { G.pt.replica = 0; POWERS.terremoto(true); }
+  if (G.pt.replica > 0 && (G.pt.replica -= dt) <= 0) { G.pt.replica = 0; POWERS.terremoto(true); }
   if (G.dash && G.dash.t - dt <= 0 && G.dash.gust) { hitArea(p.x, p.y, 90, 20 * powerMul() * G.st.might, 500); fxRing(p.x, p.y, 90, G.orden.color); }
   if (G.dash) { G.dash.t -= dt; p.x += G.dash.vx * dt; p.y += G.dash.vy * dt; if (G.parts.length < 350) G.parts.push({ x: p.x, y: p.y, vx: 0, vy: 0, t: 0.3, c: G.orden.color, r: 6 }); if (G.dash.t <= 0) G.dash = null; }
   if (G.pt.carga > 0) {
@@ -538,7 +672,7 @@ function drawStormScreen() {
   ctx.strokeStyle = `rgba(200,220,255,${0.35 * a})`; ctx.lineWidth = 1.3; ctx.beginPath();
   for (let i = 0; i < 140; i++) { const x = (hash(i, 7) * (W + 300) + G.t * 900 * S.dir[0] + i * 37) % (W + 300) - 150, y = (hash(3, i) * H + G.t * 1100) % (H + 40) - 20; ctx.moveTo(x, y); ctx.lineTo(x + S.dir[0] * 18, y + 22); }
   ctx.stroke();
-  if (S.flash > 0) { ctx.fillStyle = `rgba(255,255,240,${S.flash * 0.45})`; ctx.fillRect(0, 0, W, H); }
+  if (S.flash > 0) { ctx.fillStyle = `rgba(255,255,240,${S.flash * (OPT.flashes ? 0.45 : 0.08)})`; ctx.fillRect(0, 0, W, H); }
 }
 function dropFruit(x, y) {
   const ks = Object.keys(FRUTAS); if (!ks.length) return;
@@ -569,6 +703,9 @@ function addXp(v) {
     p.xp -= p.xpNext; p.lvl++;
     p.xpNext = Math.floor(5 + p.lvl * 5.5 + Math.max(0, p.lvl - 20) * 6);
     G.pending++;
+    // destello dorado al subir de nivel
+    G.fx.push({ k: 'ring', x: p.x, y: p.y, r: 130, col: '#f6c945', t: 0.5, max: 0.5 });
+    for (let i = 0; i < 18 && G.parts.length < 350; i++) { const a = i / 18 * TAU, sp = rnd(120, 220); G.parts.push({ x: p.x, y: p.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: rnd(.35, .6), c: i % 2 ? '#f6c945' : '#fff6c8', r: rnd(2, 4) }); }
   }
 }
 function banner(text, boss) { G.banner = { text, t: 3, boss: !!boss }; }
@@ -690,10 +827,10 @@ function updateWeapons(dt) {
         if (w.t <= 0) {
           w.t = 1.4 * st.cd;
           const n = 6 + 2 * (+(L >= 2)) + 2 * (+(L >= 4)) + 2 * st.amount;
-          const dmg = 8 * (L >= 3 ? 1.4 : 1) * st.might, slowT = L >= 4 ? 2.5 : 1.5, slowA = L >= 5 ? 0.8 : 0.5, off = rnd(0, TAU);
+          const dmg = 11 * (L >= 3 ? 1.4 : 1) * st.might, slowT = L >= 4 ? 2.5 : 1.5, slowA = L >= 5 ? 0.8 : 0.5, off = rnd(0, TAU);
           for (let i = 0; i < n; i++) {
             const a = off + i * TAU / n;
-            G.bullets.push({ kind: 'hielo', x: p.x, y: p.y, vx: Math.cos(a) * 380, vy: Math.sin(a) * 380, r: 6, dmg, pierce: 0, life: 0.9 * st.area, hit: new Set(), slowT, slowA });
+            G.bullets.push({ kind: 'hielo', x: p.x, y: p.y, vx: Math.cos(a) * 380, vy: Math.sin(a) * 380, r: 6, dmg, pierce: L >= 3 ? 1 : 0, life: 0.9 * st.area, hit: new Set(), slowT, slowA });
           }
           snd('ice');
         }
@@ -747,7 +884,7 @@ function updateWeapons(dt) {
         w.t -= dt;
         if (w.t <= 0) {
           w.t = 2.6 * st.cd;
-          const n = 1 + (+(L >= 2)) + (+(L >= 4)) + st.amount, R = 62 * st.area * (L >= 3 ? 1.3 : 1), dmg = 6 * (L >= 4 ? 1.4 : 1) * st.might, life = L >= 5 ? 8 : 4;
+          const n = 1 + (+(L >= 2)) + (+(L >= 4)) + st.amount, R = 62 * st.area * (L >= 3 ? 1.3 : 1), dmg = 3.5 * (L >= 4 ? 1.4 : 1) * st.might, life = L >= 5 ? 6 : 4;
           const c = G.enemies.filter(e => !e.dead && (e.x - p.x) ** 2 + (e.y - p.y) ** 2 < 350 * 350);
           for (let i = 0; i < n; i++) { const e = c.length ? c[Math.random() * c.length | 0] : null; const zx = e ? e.x : p.x + rnd(-150, 150), zy = e ? e.y : p.y + rnd(-150, 150);
             G.zones.push({ x: zx, y: zy, r: R, t: life, max: life, dmg, tick: 0, slow: 0.6, col: '#d9a35f', kind: 'arena' }); }
@@ -828,11 +965,11 @@ function updateSpawns(dt) {
     G.nextSwarm += 75;
     const n = 24 + Math.floor(t / 30), kind = t > 300 ? 'tiburon' : 'cangrejo', R = Math.hypot(vw(), vh()) / 2 + 20;
     for (let i = 0; i < n; i++) { const a = i / n * TAU; spawnEnemy(kind, p.x + Math.cos(a) * R, p.y + Math.sin(a) * R); }
-    banner(t('¡Emboscada! Te rodean'));
+    banner(window.t('¡Emboscada! Te rodean'));
   }
   if (G.bossIdx < BOSS_KINDS.length && t >= BOSS_TIMES[G.bossIdx]) {
     const k = BOSS_KINDS[G.bossIdx++], [x, y] = ringPos(false);
-    spawnEnemy(k, x, y); banner(t('¡{0} se acerca!', ETYPES[k].boss), true); snd('boss'); shake = 8;
+    spawnEnemy(k, x, y); banner(window.t('¡{0} se acerca!', ETYPES[k].boss), true); snd('boss'); shake = 8;
   }
 }
 function updateEnemies(dt) {
@@ -890,6 +1027,7 @@ function update(dt) {
     const dx = joy.x - joy.ox, dy = joy.y - joy.oy, d = Math.hypot(dx, dy);
     if (d > 6) { const m = Math.min(1, d / 50); ix = dx / d * m; iy = dy / d * m; }
   }
+  if (PAD.x || PAD.y) { ix = PAD.x; iy = PAD.y; }
   const il = Math.hypot(ix, iy); if (il > 1) { ix /= il; iy /= il; }
   p.moving = il > 0.05;
   if (p.moving) { p.mvx = ix; p.mvy = iy; p.face = Math.atan2(iy, ix); }
@@ -1474,9 +1612,12 @@ function drawWorld() {
   }
   for (const q of G.parts) { ctx.globalAlpha = Math.min(1, q.t * 3); ctx.fillStyle = q.c; ctx.fillRect(q.x - q.r / 2, q.y - q.r / 2, q.r, q.r); }
   ctx.globalAlpha = 1;
-  ctx.font = '900 13px Nunito, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  for (const n of G.nums) {
-    ctx.globalAlpha = Math.min(1, n.t * 3); ctx.lineWidth = 3; ctx.strokeStyle = '#000'; ctx.strokeText(n.v, n.x, n.y); ctx.fillStyle = '#fff'; ctx.fillText(n.v, n.x, n.y);
+  // números de daño: aparecen con un pequeño salto; los golpes fuertes, más grandes y dorados
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 3; ctx.strokeStyle = '#000';
+  if (OPT.nums) for (const n of G.nums) {
+    const tier = n.v >= 100 ? 2 : n.v >= 40 ? 1 : 0, pop = 1 + Math.max(0, n.t - 0.5) * 5;
+    ctx.font = `900 ${Math.round([13, 15, 19][tier] * pop)}px Nunito, sans-serif`;
+    ctx.globalAlpha = Math.min(1, n.t * 3); ctx.strokeText(n.v, n.x, n.y); ctx.fillStyle = ['#fff', '#ffd27a', '#ffb52e'][tier]; ctx.fillText(n.v, n.x, n.y);
   }
   ctx.globalAlpha = 1;
 }
@@ -1574,7 +1715,7 @@ function drawOath() {
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.strokeStyle = '#000';
   const big = Math.max(24, Math.min(50, W / 20));
   ctx.lineWidth = 6; ctx.font = `${Math.round(big * 0.62)}px "Pirata One", serif`; ctx.fillStyle = col;
-  const head = t('— {0}.º JURAMENTO —', o.rank + 1); ctx.strokeText(head, cx, cy - big * 0.5); ctx.fillText(head, cx, cy - big * 0.5);
+  const head = window.t('— {0}.º JURAMENTO —', o.rank + 1); ctx.strokeText(head, cx, cy - big * 0.5); ctx.fillText(head, cx, cy - big * 0.5);
   ctx.font = `${Math.round(big)}px "Pirata One", serif`; ctx.fillStyle = '#fff';
   const n = Math.floor(Math.max(0, Math.min(1, (t - 0.45) / 1.5)) * o.text.length);
   const lines = wrapText('"' + o.text + '"', W * 0.86);
@@ -1584,9 +1725,9 @@ function drawOath() {
     const pop = Math.min(1, (t - 2.1) / 0.25), sc = 1 + (1 - pop) * 0.6;
     ctx.save(); ctx.translate(cx, y0 + big * 0.3); ctx.scale(sc, sc); ctx.globalAlpha = fade * pop;
     ctx.font = `${Math.round(big * 0.7)}px "Pirata One", serif`; ctx.fillStyle = col; ctx.lineWidth = 6;
-    const rt = t('{0} de los {1}', OS.rangos[o.rank], G.orden.nombre); ctx.strokeText(rt, 0, 0); ctx.fillText(rt, 0, 0); ctx.restore();
+    const rt = window.t('{0} de los {1}', OS.rangos[o.rank], G.orden.nombre); ctx.strokeText(rt, 0, 0); ctx.fillText(rt, 0, 0); ctx.restore();
   }
-  if (t > 1.6) { ctx.globalAlpha = fade * 0.7; ctx.font = '700 13px Nunito, sans-serif'; ctx.fillStyle = '#fff'; ctx.fillText(t('Toca o pulsa una tecla para continuar'), cx, H - 30); }
+  if (t > 1.6) { ctx.globalAlpha = fade * 0.7; ctx.font = '700 13px Nunito, sans-serif'; ctx.fillStyle = '#fff'; ctx.fillText(window.t('Toca o pulsa una tecla para continuar'), cx, H - 30); }
   ctx.globalAlpha = 1;
 }
 function skipOath() { if (G && G.oath && G.oath.t > 1.6) G.oath.t = G.oath.dur; }
@@ -1624,7 +1765,7 @@ function draw() {
     if (state === 'menu') { const cv = $('#islaPreview'); MDR_ISLAS.drawPreview(cv.getContext('2d'), tema, cv.width, cv.height, menuT, islaSel * 1.7); }
     return;
   }
-  const sx = shake > 0 ? rnd(-shake, shake) : 0, sy = shake > 0 ? rnd(-shake, shake) : 0;
+  const sh = OPT.shake ? shake : 0, sx = sh > 0 ? rnd(-sh, sh) : 0, sy = sh > 0 ? rnd(-sh, sh) : 0;
   ctx.setTransform(DPR * S, 0, 0, DPR * S, DPR * (W / 2 + sx), DPR * (H / 2 + sy));
   ctx.translate(-G.p.x, -G.p.y);
   drawWorld();
@@ -1633,7 +1774,10 @@ function draw() {
   MDR_ISLAS.ambient(ctx, G.isla.tema, W, H, state === 'play' ? frameDt : 0, G.t);
   drawStormScreen();
   // viñeta roja al recibir daño
-  if (G.p.hurtT > 0) { ctx.fillStyle = `rgba(200,0,0,${G.p.hurtT})`; ctx.fillRect(0, 0, W, H); }
+  if (G.p.hurtT > 0) {
+    if (OPT.flashes) { ctx.fillStyle = `rgba(200,0,0,${G.p.hurtT})`; ctx.fillRect(0, 0, W, H); }
+    else { ctx.strokeStyle = `rgba(200,0,0,${Math.min(0.8, G.p.hurtT * 4)})`; ctx.lineWidth = 10; ctx.strokeRect(5, 5, W - 10, H - 10); } // sin destello: solo un marco
+  }
   drawHUD();
   if (G.oath) drawOath();
   updatePowerUI();
@@ -1641,12 +1785,16 @@ function draw() {
 
 let last = performance.now();
 function frame(now) {
+  requestAnimationFrame(frame);
+  try { gameStep(now); } catch (e) { console.error(e); }
+}
+function gameStep(now) {
   const dt = Math.min(0.033, (now - last) / 1000); last = now; frameDt = dt;
   menuT += dt;
+  try { pollPad(dt); } catch (e) {}
   if (state === 'play' && G) { if (G.oath) { G.oath.t += dt; if (G.oath.t >= G.oath.dur) finishOath(); } else update(dt); }
   shake = Math.max(0, shake - dt * 30);
   draw();
-  requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 
@@ -1671,7 +1819,7 @@ function refreshBest() {
   renderHome();
   const o = ordenById(SAVE.ordenSel);
   $('#homeOrden').innerHTML = o ? `🛡️ <b style="color:${o.color}">${o.nombre}</b> · ${OS.rangos[rangoDe(ordenPts(o.id))]}` : '';
-  const b = store.get('mdr_best', null);
+  const b0 = store.get('mdr_best', null), b = b0 && Number.isFinite(+b0.bounty) ? b0 : null;
   $('#best').textContent = b ? t('Mayor recompensa: 💰 {0} ({1})', fmt(b.bounty), b.name) : '';
   $('#gold').textContent = `🪙 ${fmt(SAVE.berries)} ${t('Doblones de Faro')}` + (SAVE.partidas ? ` · ${SAVE.partidas} ${t('partidas')}` : '');
   const nb = misionesListas(), bd = $('#misBadge'); bd.textContent = nb; bd.classList.toggle('on', nb > 0);
@@ -1724,7 +1872,7 @@ function closeShop() { hide('shop'); if (shopFrom === 'over') { show('over'); st
 // ---------- Paneles del menú ----------
 let panelFrom = 'menu';
 function openPanel(id, from, build) { panelFrom = from; hide(from); build(); show(id); state = id; }
-function closePanel(id) { hide(id); if (panelFrom === 'over') { show('over'); state = 'over'; } else { refreshBest(); show('menu'); state = 'menu'; } }
+function closePanel(id) { hide(id); if (panelFrom === 'pause') { show('pause'); state = 'pause'; } else if (panelFrom === 'over') { show('over'); state = 'over'; } else { refreshBest(); show('menu'); state = 'menu'; } }
 const goldLine = () => `🪙 ${fmt(SAVE.berries)} ${t('Doblones de Faro')}`;
 
 function buildMissions() {
@@ -1889,6 +2037,7 @@ function startGame(ch) {
   if (!SAVE.stats.piratas.includes(ch.id)) { SAVE.stats.piratas.push(ch.id); saveGame(); }
   const isla = (G && state === 'over' && G.isla) || ISLAS[islaSel];
   newGame(ch, isla); setupPowerUI(); hide('select'); hide('over'); hide('menu'); setTopBtns(true); state = 'play'; last = performance.now();
+  if (SAVE.partidas < 2) showHint(PAD.on ? t('🎮 Stick: moverte · X/LB y Y/RB: poderes · Start: pausa') : (matchMedia('(pointer: coarse)').matches ? t('📱 Arrastra en la pantalla para moverte · Toca los botones de poder') : t('⌨️ WASD / flechas: moverte · Q / E: poderes · Esc: pausa')), 7);
 }
 function getOptions(n) {
   const opts = [];
@@ -1966,7 +2115,7 @@ function pauseGame() {
 function resumeGame() { if (state !== 'pause') return; hide('pause'); state = 'play'; last = performance.now(); }
 function endGame(won) {
   state = 'over'; setTopBtns(false); joy.active = false;
-  const best = store.get('mdr_best', null);
+  const best0 = store.get('mdr_best', null), best = best0 && Number.isFinite(+best0.bounty) ? best0 : null;
   const record = !best || G.bounty > best.bounty;
   if (record) store.set('mdr_best', { bounty: G.bounty, name: G.ch.name });
   const unlockedBefore = ISLAS.filter(islaUnlocked).map(i => i.id);
@@ -2024,7 +2173,7 @@ $('#bRetry').onclick = () => { const ch = G.ch; hide('over'); startGame(ch); };
 $('#bMenu').onclick = () => { hide('over'); G = null; state = 'menu'; refreshBest(); show('menu'); };
 const bMute = $('#bMute');
 const setMuteIcon = () => { bMute.textContent = muted ? '🔇' : '🔊'; };
-bMute.onclick = () => { muted = !muted; store.set('mdr_muted', muted); setMuteIcon(); };
+bMute.onclick = () => { muted = !muted; store.set('mdr_muted', muted); setMuteIcon(); applyVolumes(); };
 setMuteIcon(); refreshBest();
 
 addEventListener('keydown', e => {
@@ -2036,6 +2185,7 @@ addEventListener('keydown', e => {
   if (state === 'play' && (k === 'e' || k === '2')) usePower(1);
   if ((k === 'p' || k === 'escape') && state === 'play') pauseGame();
   else if ((k === 'p' || k === 'escape') && state === 'pause') resumeGame();
+  else if (k === 'escape' && state !== 'play' && state !== 'levelup' && state !== 'menu') padBack();
   if (state === 'menu' && (k === 'arrowleft' || k === 'a')) moveIsla(-1);
   if (state === 'menu' && (k === 'arrowright' || k === 'd')) moveIsla(1);
   if (state === 'levelup' && /^[1-4]$/.test(k)) { const o = curOpts[+k - 1]; if (o) chooseOpt(o); }
@@ -2055,7 +2205,96 @@ cvs.addEventListener('pointermove', e => { if (joy.active && e.pointerId === joy
 const endJoy = e => { if (e.pointerId === joy.id) joy.active = false; };
 cvs.addEventListener('pointerup', endJoy); cvs.addEventListener('pointercancel', endJoy);
 
+// ---------- Ajustes ----------
+function buildAjustes() {
+  $('#oMusic').value = Math.round(OPT.music * 100); $('#oSfx').value = Math.round(OPT.sfx * 100);
+  $('#oShake').checked = OPT.shake; $('#oFlash').checked = OPT.flashes; $('#oNums').checked = OPT.nums;
+  $('#oLangRow').style.display = G ? 'none' : '';   // cambiar de idioma recarga la página
+  $('#oLangEs').classList.toggle('on', window.MDR_LANG !== 'en'); $('#oLangEn').classList.toggle('on', window.MDR_LANG === 'en');
+}
+$('#oMusic').oninput = e => { OPT.music = e.target.value / 100; applyVolumes(); saveOpts(); };
+$('#oSfx').oninput = e => { OPT.sfx = e.target.value / 100; applyVolumes(); saveOpts(); snd('coin'); };
+$('#oShake').onchange = e => { OPT.shake = e.target.checked; saveOpts(); };
+$('#oFlash').onchange = e => { OPT.flashes = e.target.checked; saveOpts(); };
+$('#oNums').onchange = e => { OPT.nums = e.target.checked; saveOpts(); };
+$('#oLangEs').onclick = () => { if (window.MDR_LANG !== 'es') window.MDR_SET_LANG('es'); };
+$('#oLangEn').onclick = () => { if (window.MDR_LANG !== 'en') window.MDR_SET_LANG('en'); };
+$('#bOpts').onclick = () => { initAudio(); openPanel('ajustes', 'menu', buildAjustes); };
+$('#bOpts2').onclick = () => openPanel('ajustes', 'pause', buildAjustes);
+$('#ajustes .back').onclick = () => closePanel('ajustes');
+
+// Aviso breve en la parte baja de la pantalla (controles, mando conectado…)
+let hintTimer = 0;
+function showHint(text, secs = 5) {
+  const h = $('#padhint'); h.textContent = text; h.classList.add('show');
+  clearTimeout(hintTimer); hintTimer = setTimeout(() => h.classList.remove('show'), secs * 1000);
+}
+
+// ---------- Mando (Gamepad API, distribución estándar) ----------
+// 0 A · 1 B · 2 X · 3 Y · 4 LB · 5 RB · 9 Start · 12-15 cruceta
+const PAD = { x: 0, y: 0, prev: [], on: false, navT: 0, dir: 0 };
+const topOverlay = () => [...document.querySelectorAll('.ov.show')].pop() || null;
+function padItems() {
+  const ov = topOverlay(); if (!ov) return [];
+  return [...ov.querySelectorAll('button, input')].filter(el => !el.disabled && el.offsetParent !== null);
+}
+function padSetFocus(el) {
+  document.querySelectorAll('.pfocus').forEach(x => x.classList.remove('pfocus'));
+  if (!el) return;
+  el.classList.add('pfocus'); el.focus({ preventScroll: true }); el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+}
+// navegación espacial: elige el elemento más cercano en la dirección pedida (±1 horizontal, ±2 vertical)
+function padMove(dir) {
+  const items = padItems(); if (!items.length) return;
+  const cur = items.includes(document.activeElement) ? document.activeElement : null;
+  if (!cur) { padSetFocus(items.find(el => el.id === 'bPlay' || el.classList.contains('card')) || items[0]); return; }
+  if (cur.type === 'range' && Math.abs(dir) === 1) { cur.value = +cur.value + dir * (+cur.step || 1); cur.dispatchEvent(new Event('input')); return; }
+  const r0 = cur.getBoundingClientRect(), cx = r0.left + r0.width / 2, cy = r0.top + r0.height / 2;
+  let best = null, bs = Infinity;
+  for (const el of items) {
+    if (el === cur) continue;
+    const r = el.getBoundingClientRect(), dx = r.left + r.width / 2 - cx, dy = r.top + r.height / 2 - cy;
+    const along = Math.abs(dir) === 1 ? dx * Math.sign(dir) : dy * Math.sign(dir), across = Math.abs(dir) === 1 ? Math.abs(dy) : Math.abs(dx);
+    if (along <= 4) continue;
+    const sc = along + across * 2.5; if (sc < bs) { bs = sc; best = el; }
+  }
+  if (best) padSetFocus(best);
+  else if (state === 'menu' && Math.abs(dir) === 1) moveIsla(dir);
+}
+function padBack() {
+  const ov = topOverlay(); if (!ov) return;
+  const b = ov.querySelector('.back, #bBack, #bShopBack, #bResume, #bMenu');
+  if (b && b.offsetParent !== null) b.click();
+}
+function pollPad(dt) {
+  const gps = navigator.getGamepads ? navigator.getGamepads() : [];
+  let gp = null; for (const g of gps) if (g && g.connected) { gp = g; break; }
+  if (!gp) { PAD.x = PAD.y = 0; return; }
+  const b = i => !!(gp.buttons[i] && gp.buttons[i].pressed), hit = i => b(i) && !PAD.prev[i];
+  let x = gp.axes[0] || 0, y = gp.axes[1] || 0;
+  if (Math.hypot(x, y) < 0.22) x = y = 0;
+  if (b(14)) x = -1; if (b(15)) x = 1; if (b(12)) y = -1; if (b(13)) y = 1;
+  PAD.x = x; PAD.y = y;
+  if (!PAD.on && (x || y || gp.buttons.some(q => q.pressed))) { PAD.on = true; document.body.classList.add('padnav'); }
+  if (state === 'play') {
+    if (G && G.oath) { if (hit(0) || hit(1)) skipOath(); }
+    else { if (hit(2) || hit(4)) usePower(0); if (hit(3) || hit(5)) usePower(1); if (hit(9)) pauseGame(); }
+  } else if (state === 'pause' && (hit(9) || hit(1))) resumeGame();
+  else {
+    const dir = Math.max(Math.abs(x), Math.abs(y)) > 0.5 ? (Math.abs(x) > Math.abs(y) ? Math.sign(x) : 2 * Math.sign(y)) : 0;
+    PAD.navT -= dt;
+    if (dir && (dir !== PAD.dir || PAD.navT <= 0)) { padMove(dir); PAD.navT = dir !== PAD.dir ? 0.35 : 0.15; }
+    PAD.dir = dir;
+    if (hit(0)) { const el = document.activeElement; if (el && padItems().includes(el)) { initAudio(); el.click(); } else padMove(1); }
+    if (hit(1)) padBack();
+    if (state === 'menu') { if (hit(4)) moveIsla(-1); if (hit(5)) moveIsla(1); }
+  }
+  PAD.prev = gp.buttons.map(q => q.pressed);
+}
+addEventListener('gamepadconnected', () => showHint(t('🎮 Mando conectado'), 3));
+addEventListener('pointerdown', () => { if (PAD.on) { PAD.on = false; document.body.classList.remove('padnav'); } }, true);
+
 // gancho de pruebas
-window.__mdr = { get G() { return G; }, get state() { return state; }, get SAVE() { return SAVE; } };
+window.__mdr = { get G() { return G; }, get state() { return state; }, get SAVE() { return SAVE; }, get OPT() { return OPT; }, end: won => { if (G && state === 'play') endGame(!!won); }, oath: r => { if (G && G.orden) startOath(r); } };
 window.__drawComp = drawCompanion;
 })();
