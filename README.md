@@ -17,7 +17,9 @@ npx serve .
 
 ## Contenido
 
-- **6 islas** con temática propia (playa, jungla, desierto, nieve, volcán y cementerio de barcos): suelo, decoración, clima y tono de color distintos, más dificultad y más Berries en cada una. Se desbloquean aguantando 5 minutos en la anterior y se eligen en el centro del menú principal
+- **9 islas** con temática propia (playa, jungla, desierto, nieve, volcán, cementerio de barcos, tormenta, cristal y gruta): suelo, decoración, clima y tono de color distintos, más dificultad y más Berries en cada una. Se desbloquean aguantando 5 minutos en la anterior y se eligen en el centro del menú principal
+- **Órdenes del Faro:** 10 órdenes (Vendaval, Marea, Coral, Bruma, Ascuas, Abismo, Trueno, Ancla, Escarcha y Estrellas), cada una con 2 poderes (Q / E) que gastan Resonancia, un compañero espiritual que dispara contigo, mejoras propias al subir de nivel y una mejora especial. Jugar con una orden suma puntos; al alcanzar cada rango (Grumete → Marinero → Oficial → Capitán → Leyenda) se pronuncia un juramento con una animación a pantalla completa
+- **Gran Tormenta:** en las islas de tormenta (Ojo de la Tormenta, Cumbres de Cristal) estalla cada cierto tiempo: viento, lluvia y rayos con aviso; la Resonancia se recarga el triple
 - **8 piratas:** Capitana Coral (sable), Bram el Certero (pistola), Lumi Brújula (rayos), Barbagris (ancla), Bruno el Artillero (cañón), Nieves la Cartógrafa (hielo), Marea la Arponera (arpón) y Kai el Tamborilero (tambor). Los 6 últimos se desbloquean con Berries
 - **10 armas** (nivel 1–5): Sable, Pistola, Rayo de Tormenta, Ancla Giratoria, Cañonazo, Fruta Ígnea, Fruta Glacial, Arpón, Tambor de Guerra y Fruta Vendaval
 - **Mejoras con rareza** al subir de nivel (Común, Raro, Épico, Legendario): experiencia, daño, vida, velocidad, recarga, área, recogida, armadura, regeneración y Berries; se acumulan durante la partida

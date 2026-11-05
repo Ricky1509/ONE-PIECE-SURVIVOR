@@ -30,10 +30,12 @@ window.MDR_CONFIG = {
   duracionMinutos: 10,
 
   // ---------------------------------------------------------------
-  //  ISLAS (mapas). tema: playa | jungla | desierto | nieve | volcan | fantasma
+  //  ISLAS (mapas). tema: playa | jungla | desierto | nieve | volcan | fantasma | tormenta | cristal | gruta
   //  dificultad: multiplica la vida de los enemigos (y la mitad del exceso al daño)
   //  berries: multiplica los Berries ganados
   //  desbloqueo: { isla, minutos } → aguantar esos minutos en esa isla
+  //  tormenta: true → cada cierto tiempo estalla la Gran Tormenta (viento, lluvia, rayos;
+  //            la Resonancia de las órdenes se recarga el triple)
   // ---------------------------------------------------------------
   islas: [
     { id: 'calavera',   nombre: 'Isla Calavera',        tema: 'playa',    dificultad: 1.0, berries: 1.0,
@@ -48,6 +50,108 @@ window.MDR_CONFIG = {
       descripcion: 'La tierra arde bajo tus botas. Ríos de lava y lluvia de brasas.' },
     { id: 'naufragios', nombre: 'Mar de los Naufragios', tema: 'fantasma', dificultad: 3.0, berries: 2.7,  desbloqueo: { isla: 'ceniza', minutos: 5 },
       descripcion: 'Un cementerio de barcos envuelto en niebla, iluminado por faroles que nadie enciende.' },
+    { id: 'ojo',        nombre: 'Isla del Ojo de la Tormenta', tema: 'tormenta', dificultad: 3.4, berries: 3.0, desbloqueo: { isla: 'naufragios', minutos: 5 }, tormenta: true,
+      descripcion: 'Una isla donde nunca deja de llover. Cada poco estalla la Gran Tormenta: viento, rayos… y Resonancia para quien sepa aprovecharla.' },
+    { id: 'cristal',    nombre: 'Cumbres de Cristal',    tema: 'cristal',  dificultad: 3.8, berries: 3.4,  desbloqueo: { isla: 'ojo', minutos: 5 }, tormenta: true,
+      descripcion: 'Montañas cubiertas de cristales que brillan con cada relámpago de la Gran Tormenta.' },
+    { id: 'ecos',       nombre: 'Gruta de los Ecos',     tema: 'gruta',    dificultad: 4.2, berries: 3.8,  desbloqueo: { isla: 'cristal', minutos: 5 },
+      descripcion: 'Una caverna bajo el mar iluminada por hongos y lagunas que brillan en la oscuridad.' },
+  ],
+
+  // ---------------------------------------------------------------
+  //  ÓRDENES DEL FARO
+  //  La orden activa se elige en el menú "Órdenes" y da 2 poderes (Q / E)
+  //  que gastan Resonancia. Jugar con una orden suma puntos; al llegar a
+  //  `puntosRango` se pronuncia un juramento y se sube de rango
+  //  (poderes +25% y recarga -8% por rango; aura en rango 3 y alas de luz en 5).
+  //  Puntos por partida: derribos + 100 por jefe + 0,5 por segundo.
+  //  Al subir de nivel aparecen mejoras de la orden (mejorasOrden) y una
+  //  mejora especial distinta en cada orden (campo `especial`).
+  // ---------------------------------------------------------------
+  ordenesSistema: {
+    nombre: 'Órdenes del Faro',
+    energia: 'Resonancia',
+    energiaMax: 100,
+    regenEnergia: 1.5,          // por segundo
+    probConcha: 0.05,           // probabilidad de que un enemigo suelte una concha resonante (+20)
+    rangos: ['Grumete', 'Marinero', 'Oficial', 'Capitán', 'Leyenda'],
+    puntosRango: [0, 300, 1000, 2500, 6000],
+    juramentos: [
+      'Navegaré junto a mi tripulación, pase lo que pase.',
+      'No dejaré a nadie atrás en la tormenta.',
+      'Daré la cara aunque el mar entero se alce contra mí.',
+      'Seré la luz que guía a los perdidos hasta puerto.',
+      'Aunque todos los faros se apaguen, yo seguiré brillando.',
+    ],
+  },
+  mejorasOrden: {
+    pot:  { nombre: 'Juramento Ardiente', icono: '🔆', descripcion: '+25% de poder en los poderes de tu orden', max: 5 },
+    rec:  { nombre: 'Disciplina',         icono: '⏱️', descripcion: '-12% de recarga en los poderes',           max: 4 },
+    cos:  { nombre: 'Sintonía',           icono: '🎐', descripcion: 'Los poderes cuestan un 15% menos',          max: 3 },
+    res:  { nombre: 'Gran Resonancia',    icono: '💠', descripcion: '+20 de Resonancia máxima y +0,5 por segundo', max: 3 },
+    comp: { nombre: 'Vínculo',            icono: '🤝', descripcion: 'Tu compañero hace +50% de daño y dispara más rápido', max: 3 },
+  },
+  ordenes: [
+    { id: 'vendaval', nombre: 'Guardianes del Vendaval', color: '#7fd3ff', precio: 0,
+      lema: 'El viento no se detiene, y nosotros tampoco.', companero: { nombre: 'Gaviota de aire', forma: 'gaviota' },
+      especial: { nombre: 'Doble Ráfaga', descripcion: 'La Ráfaga sale también hacia atrás y el Salto deja un remolino que golpea' },
+      poderes: [
+        { id: 'rafaga', nombre: 'Ráfaga', icono: '🌬️', descripcion: 'Golpe de viento en cono que lanza lejos a los enemigos', coste: 30, recarga: 6 },
+        { id: 'salto', nombre: 'Salto del Céfiro', icono: '💨', descripcion: 'Impulso rápido hacia delante; eres intocable durante el salto', coste: 20, recarga: 4 } ] },
+    { id: 'marea', nombre: 'Hijos de la Marea', color: '#3a8ee6', precio: 0,
+      lema: 'Toda ola vuelve a la orilla.', companero: { nombre: 'Pececillo de espuma', forma: 'pez' },
+      especial: { nombre: 'Mareas Gemelas', descripcion: 'La Gran Ola lanza tres olas en abanico' },
+      poderes: [
+        { id: 'ola', nombre: 'Gran Ola', icono: '🌊', descripcion: 'Una ola avanza arrastrando y golpeando a todo lo que toca', coste: 35, recarga: 7 },
+        { id: 'escudo', nombre: 'Escudo de Agua', icono: '🫧', descripcion: 'Burbuja que absorbe daño durante 8 segundos', coste: 30, recarga: 12 } ] },
+    { id: 'coral', nombre: 'Custodios del Coral', color: '#ff7f9f', precio: 0,
+      lema: 'Lo que crece despacio, resiste para siempre.', companero: { nombre: 'Medusa luminosa', forma: 'medusa' },
+      especial: { nombre: 'Arrecife Sanador', descripcion: 'Dentro del Arrecife Vivo te curas un 3% de vida por segundo' },
+      poderes: [
+        { id: 'arrecife', nombre: 'Arrecife Vivo', icono: '🪸', descripcion: 'Un círculo de coral que daña y frena a los enemigos 5 segundos', coste: 35, recarga: 9 },
+        { id: 'bendicion', nombre: 'Bendición del Arrecife', icono: '💗', descripcion: 'Recuperas un 35% de vida poco a poco', coste: 40, recarga: 15 } ] },
+    { id: 'bruma', nombre: 'Sombras de la Bruma', color: '#b8c4d0', precio: 800,
+      lema: 'Quien no puede verte, no puede vencerte.', companero: { nombre: 'Zorro de niebla', forma: 'zorro' },
+      especial: { nombre: 'Niebla Persistente', descripcion: 'Ecos de Bruma duran el doble y el Velo 2 segundos más' },
+      poderes: [
+        { id: 'velo', nombre: 'Velo de Niebla', icono: '🌫️', descripcion: 'Te vuelves invisible: los enemigos se pierden y no te dañan', coste: 40, recarga: 14 },
+        { id: 'clones', nombre: 'Ecos de Bruma', icono: '👥', descripcion: 'Tres copias de niebla atraen a los enemigos y luego estallan', coste: 30, recarga: 10 } ] },
+    { id: 'ascuas', nombre: 'Forjadores de Ascuas', color: '#ff6b2c', precio: 1200,
+      lema: 'Del fuego sale el acero.', companero: { nombre: 'Salamandra de brasa', forma: 'salamandra' },
+      especial: { nombre: 'Fuego Eterno', descripcion: 'Las quemaduras duran y hacen el doble' },
+      poderes: [
+        { id: 'llamarada', nombre: 'Llamarada', icono: '🔥', descripcion: 'Cono de fuego que deja ardiendo a los enemigos', coste: 35, recarga: 7 },
+        { id: 'brasas', nombre: 'Armadura de Brasas', icono: '🛡️', descripcion: '+3 armadura y quemas a quien se acerque durante 6 segundos', coste: 30, recarga: 12 } ] },
+    { id: 'abismo', nombre: 'Videntes del Abismo', color: '#8e7cf0', precio: 1600,
+      lema: 'En lo más hondo, el tiempo se detiene.', companero: { nombre: 'Pulpito de tinta estelar', forma: 'pulpo' },
+      especial: { nombre: 'Abismo Insondable', descripcion: 'La Marca alcanza a 10 enemigos y la Calma también hace daño' },
+      poderes: [
+        { id: 'calma', nombre: 'Calma Profunda', icono: '⏳', descripcion: 'El tiempo se ralentiza a tu alrededor durante 4 segundos', coste: 40, recarga: 13 },
+        { id: 'marca', nombre: 'Marca del Abismo', icono: '👁️', descripcion: 'Marca a los 5 enemigos más fuertes: reciben +60% de daño', coste: 25, recarga: 9 } ] },
+    { id: 'trueno', nombre: 'Heraldos del Trueno', color: '#f9ca24', precio: 2000,
+      lema: 'Primero el relámpago, después el silencio.', companero: { nombre: 'Anguila de chispas', forma: 'anguila' },
+      especial: { nombre: 'Tormenta Perfecta', descripcion: 'Tormenta lanza el doble de rayos' },
+      poderes: [
+        { id: 'tormenta', nombre: 'Tormenta', icono: '⛈️', descripcion: 'Una lluvia de rayos cae sobre los enemigos cercanos', coste: 40, recarga: 9 },
+        { id: 'carga', nombre: 'Carga Eléctrica', icono: '⚡', descripcion: '+40% velocidad y descargas automáticas durante 5 segundos', coste: 30, recarga: 11 } ] },
+    { id: 'ancla', nombre: 'Guardianes del Ancla', color: '#b08968', precio: 2500,
+      lema: 'Firmes como la roca, pesados como el ancla.', companero: { nombre: 'Cangrejo de piedra', forma: 'cangrejo' },
+      especial: { nombre: 'Réplica', descripcion: 'El Terremoto se repite una segunda vez' },
+      poderes: [
+        { id: 'terremoto', nombre: 'Terremoto', icono: '🪨', descripcion: 'Golpe en el suelo que aturde a los enemigos cercanos', coste: 35, recarga: 9 },
+        { id: 'roca', nombre: 'Piel de Roca', icono: '🗿', descripcion: '+6 armadura durante 6 segundos y empuja a quien esté cerca', coste: 30, recarga: 12 } ] },
+    { id: 'escarcha', nombre: 'Centinelas de la Escarcha', color: '#a8e6ff', precio: 3000,
+      lema: 'El hielo guarda lo que el mar olvida.', companero: { nombre: 'Pingüino de escarcha', forma: 'pinguino' },
+      especial: { nombre: 'Corazón Helado', descripcion: 'Ventisca un 50% más grande y 4 Lanzas de Hielo más' },
+      poderes: [
+        { id: 'ventisca', nombre: 'Ventisca', icono: '❄️', descripcion: 'Congela a los enemigos cercanos durante 2 segundos', coste: 40, recarga: 12 },
+        { id: 'lanzas', nombre: 'Lanzas de Hielo', icono: '🧊', descripcion: 'Lanzas que atraviesan a todos los enemigos en línea', coste: 30, recarga: 6 } ] },
+    { id: 'estrella', nombre: 'Navegantes de las Estrellas', color: '#ffe08a', precio: 4000,
+      lema: 'Las estrellas siempre señalan el camino.', companero: { nombre: 'Búho estelar', forma: 'buho' },
+      especial: { nombre: 'Constelación', descripcion: 'Lluvia de Estrellas lanza el doble de estrellas' },
+      poderes: [
+        { id: 'lluvia', nombre: 'Lluvia de Estrellas', icono: '☄️', descripcion: 'Estrellas fugaces caen sobre los enemigos', coste: 45, recarga: 12 },
+        { id: 'atraccion', nombre: 'Atracción Estelar', icono: '🌟', descripcion: 'Atrae todas las monedas y objetos y te da experiencia', coste: 25, recarga: 15 } ] },
   ],
 
   // ---------------------------------------------------------------
@@ -216,7 +320,7 @@ window.MDR_CONFIG = {
   // ---------------------------------------------------------------
   //  MISIONES (recompensa en Berries; se cobran en el menú Misiones)
   //  tipo: derribos | tiempo (segundos) | victorias | jefe:<id> | nivel
-  //        | frutas | piratas | mejoras | armas | recompensa | tiradas | tesoros | islas
+  //        | frutas | piratas | mejoras | armas | recompensa | tiradas | tesoros | islas | rango | ordenes
   // ---------------------------------------------------------------
   misiones: [
     { id: 'k1', nombre: 'Primera sangre',         descripcion: 'Derrota 100 enemigos en total',           tipo: 'derribos', meta: 100,   recompensa: 100 },
@@ -241,7 +345,11 @@ window.MDR_CONFIG = {
     { id: 'g1', nombre: 'Buscador de tesoros',    descripcion: 'Abre el Cofre del Tesoro por primera vez', tipo: 'tiradas', meta: 1,  recompensa: 150 },
     { id: 'g2', nombre: 'Coleccionista',          descripcion: 'Consigue 10 tesoros distintos',           tipo: 'tesoros',  meta: 10,    recompensa: 1000 },
     { id: 'i1', nombre: 'Explorador',             descripcion: 'Desbloquea 3 islas',                      tipo: 'islas',    meta: 3,     recompensa: 500 },
-    { id: 'i2', nombre: 'Cartógrafo de los mares', descripcion: 'Desbloquea las 6 islas',                 tipo: 'islas',    meta: 6,     recompensa: 3000 },
+    { id: 'i2', nombre: 'Cartógrafo de los mares', descripcion: 'Desbloquea las 9 islas',                 tipo: 'islas',    meta: 9,     recompensa: 3000 },
+    { id: 'o1', nombre: 'Primer juramento',       descripcion: 'Llega al rango Marinero en una orden',    tipo: 'rango',    meta: 2,     recompensa: 300 },
+    { id: 'o2', nombre: 'Leyenda del Faro',       descripcion: 'Llega al rango Leyenda en una orden',     tipo: 'rango',    meta: 5,     recompensa: 3000 },
+    { id: 'o3', nombre: 'Las diez órdenes',       descripcion: 'Desbloquea las 10 órdenes',               tipo: 'ordenes',  meta: 10,    recompensa: 2000 },
+    { id: 's1', nombre: 'Ojo de la tormenta',     descripcion: 'Sobrevive a 3 Grandes Tormentas',         tipo: 'tormentas', meta: 3,    recompensa: 800 },
     { id: 'r1', nombre: 'Se busca',               descripcion: 'Consigue 50.000.000 de recompensa en una partida', tipo: 'recompensa', meta: 5e7, recompensa: 700 },
   ],
 
