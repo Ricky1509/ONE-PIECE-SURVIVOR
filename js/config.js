@@ -33,6 +33,9 @@ window.MDR_CONFIG = {
   //  PERSONAJES JUGABLES
   //  arma: sable | pistola | rayo | ancla | canon | fuego
   //  bonus: vida, recarga, area, velocidad (multiplicadores) y armadura (suma)
+//  dibujo (respaldo sin sprite): color (abrigo), camisa, pantalon, piel, pelo,
+//    peinado (largo|melena|corto|calvo), ojos, sombrero (tricornio|panuelo|boina|capitan),
+//    colorSombrero, pluma, abrigo, capa, panuelo, bandolera, barba, colorBarba, parche
   // ---------------------------------------------------------------
   personajes: [
     {
@@ -40,36 +43,40 @@ window.MDR_CONFIG = {
       nombre: 'Capitana Coral',
       descripcion: 'Espadachina temeraria. +20% de vida.',
       arma: 'sable',
+      precio: 0, // doblones para desbloquearlo (0 = disponible desde el inicio)
       bonus: { vida: 1.2 },
-      sprite: { src: 'sprites/coral.png', frames: 4, fps: 10, alto: 70, anclaY: 0.55 },
-      dibujo: { color: '#d9483b', piel: '#f1c27d', sombrero: 'tricornio', colorSombrero: '#2b2118' },
+      sprite: { src: 'sprites/coral.png', frames: 4, fps: 10, alto: 77, anclaY: 0.62 },
+      dibujo: { color: '#b3261e', camisa: '#f5ecd7', piel: '#f3c89a', pelo: '#3b1f4a', peinado: 'largo', sombrero: 'tricornio', colorSombrero: '#22191a', pluma: '#e74c3c', abrigo: true, panuelo: '#f6c945' },
     },
     {
       id: 'bram',
       nombre: 'Bram el Certero',
       descripcion: 'Tirador de élite. Recarga un 10% más rápido.',
       arma: 'pistola',
+      precio: 0,
       bonus: { recarga: 0.9 },
-      sprite: { src: 'sprites/bram.png', frames: 4, fps: 10, alto: 70, anclaY: 0.55 },
-      dibujo: { color: '#3a7bd5', piel: '#c68642', sombrero: 'panuelo', colorSombrero: '#d63031' },
+      sprite: { src: 'sprites/bram.png', frames: 4, fps: 10, alto: 77, anclaY: 0.62 },
+      dibujo: { color: '#2e6fbf', camisa: '#ecf0f1', pantalon: '#3d2b1f', piel: '#a86b3c', pelo: '#1b1410', peinado: 'corto', sombrero: 'panuelo', colorSombrero: '#d63031', bandolera: true },
     },
     {
       id: 'lumi',
       nombre: 'Lumi Brújula',
       descripcion: 'Domina las tormentas. +15% de área.',
       arma: 'rayo',
+      precio: 800,
       bonus: { area: 1.15 },
-      sprite: { src: 'sprites/lumi.png', frames: 4, fps: 10, alto: 70, anclaY: 0.55 },
-      dibujo: { color: '#f0a92e', piel: '#ffdbac', sombrero: 'boina', colorSombrero: '#6c5ce7' },
+      sprite: { src: 'sprites/lumi.png', frames: 4, fps: 10, alto: 77, anclaY: 0.62 },
+      dibujo: { color: '#f2b51b', camisa: '#2c3e50', pantalon: '#2c3e7a', piel: '#ffe0bd', pelo: '#17a589', peinado: 'melena', ojos: '#1f5fa8', sombrero: 'boina', colorSombrero: '#6c5ce7', capa: '#263a7a' },
     },
     {
       id: 'barba',
       nombre: 'Barbagris',
       descripcion: 'Viejo lobo de mar. Lento, +40% vida y armadura.',
       arma: 'ancla',
+      precio: 1500,
       bonus: { vida: 1.4, velocidad: 0.9, armadura: 1 },
-      sprite: { src: 'sprites/barba.png', frames: 4, fps: 10, alto: 70, anclaY: 0.55 },
-      dibujo: { color: '#5d6d7e', piel: '#e0ac69', sombrero: 'capitan', colorSombrero: '#1e3799', barba: true },
+      sprite: { src: 'sprites/barba.png', frames: 4, fps: 10, alto: 77, anclaY: 0.62 },
+      dibujo: { color: '#4f5d6b', camisa: '#d6cdb4', piel: '#e0ac69', pelo: '#dfe3e6', peinado: 'calvo', sombrero: 'capitan', colorSombrero: '#1b2f6b', barba: true, parche: true, abrigo: true },
     },
   ],
 
@@ -102,6 +109,35 @@ window.MDR_CONFIG = {
     { tipo: 'kraken', minuto: 6 },
     { tipo: 'almirante', minuto: 9 },
   ],
+
+  // ---------------------------------------------------------------
+  //  PROGRESO ENTRE PARTIDAS (Astillero)
+  //  Al terminar cada partida ganas doblones:
+  //    derribos × doblonesPorDerribo + segundos × doblonesPorSegundo
+  //    + jefes × doblonesPorJefe + (victoria ? doblonesPorVictoria : 0)
+  //  Cada mejora cuesta `precio` × crecimientoPrecio ^ nivel actual.
+  //  `valor` es lo que suma cada nivel.
+  // ---------------------------------------------------------------
+  progreso: {
+    doblonesPorDerribo: 0.5,
+    doblonesPorSegundo: 0.35,
+    doblonesPorJefe: 250,
+    doblonesPorVictoria: 1000,
+    crecimientoPrecio: 1.6,
+  },
+  mejoras: {
+    vida:        { nombre: 'Casco Reforzado',  icono: '❤️', descripcion: '+10% vida máxima',          valor: 0.10, max: 5, precio: 100 },
+    dano:        { nombre: 'Forja de Sables',  icono: '⚔️', descripcion: '+5% daño',                  valor: 0.05, max: 5, precio: 150 },
+    recarga:     { nombre: 'Tripulación Ágil', icono: '⏳', descripcion: '-3% tiempo de recarga',     valor: 0.03, max: 5, precio: 150 },
+    velocidad:   { nombre: 'Velas Nuevas',     icono: '⛵', descripcion: '+4% velocidad',             valor: 0.04, max: 4, precio: 100 },
+    area:        { nombre: 'Cañones Anchos',   icono: '🎯', descripcion: '+5% área de ataque',        valor: 0.05, max: 4, precio: 120 },
+    iman:        { nombre: 'Red de Pesca',     icono: '🧲', descripcion: '+15% radio de recogida',    valor: 0.15, max: 4, precio: 80 },
+    armadura:    { nombre: 'Planchas de Hierro', icono: '🛡️', descripcion: '+1 armadura',            valor: 1,    max: 3, precio: 250 },
+    regen:       { nombre: 'Cocinero de a Bordo', icono: '🍲', descripcion: '+0.2 vida por segundo',  valor: 0.2,  max: 4, precio: 120 },
+    experiencia: { nombre: 'Cuaderno de Bitácora', icono: '📜', descripcion: '+8% experiencia',       valor: 0.08, max: 4, precio: 150 },
+    codicia:     { nombre: 'Cofre sin Fondo',  icono: '🪙', descripcion: '+10% doblones al terminar', valor: 0.10, max: 5, precio: 100 },
+    revivir:     { nombre: 'Bote Salvavidas',  icono: '🛟', descripcion: 'Revives 1 vez por partida con 50% de vida', valor: 1, max: 1, precio: 1500 },
+  },
 
   // ---------------------------------------------------------------
   //  TEXTOS DE ARMAS Y OBJETOS (la lógica de cada arma está en juego.js)

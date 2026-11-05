@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Mar de Recompensas</title>
+<meta name="theme-color" content="#0b2a47">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
@@ -47,6 +54,35 @@
   .pstats{font-size:13px;font-weight:700;opacity:.8;margin-top:4px}
   #oMsg{margin:16px 0 4px;font-weight:900;color:var(--gold);text-align:center;font-size:18px;text-shadow:0 2px 0 #000}
   .row{display:flex;flex-wrap:wrap;justify-content:center;align-items:center}
+  button.big.alt{background:linear-gradient(180deg,#6fc3ff,#2b7bbf);color:#06223a}
+  #gold,.goldline{margin-top:10px;color:#ffe08a;font-weight:900;font-size:17px;text-shadow:0 2px 0 #000}
+  .card .cost{margin-top:8px;font-weight:900;font-size:15px;color:#2a6b1f}
+  .card.poor .cost{color:#a2340f}
+  .card.locked canvas{filter:grayscale(1) brightness(.6)}
+  .card.poor{cursor:not-allowed}
+  .card.maxed{opacity:.7;cursor:default}
+  .card.maxed .cost{color:#7a5a2e}
+  .card .pips{display:flex;justify-content:center;gap:4px;margin-top:6px}
+  .card .pips i{width:12px;height:12px;border-radius:50%;border:2px solid #3a2412;background:transparent}
+  .card .pips i.on{background:#e0a516}
+  #upg{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+  #upg .card .ic{font-size:32px}
+  #upg .card .nm{font-size:20px}
+  @media (max-width:520px){
+    #upg{grid-template-columns:1fr 1fr}
+    #upg .card{padding:8px 6px 10px}
+    #upg .card .nm{font-size:17px}
+    #upg .card .ds{font-size:12px}
+    .panel{padding:16px 14px}
+    .cards{gap:8px;margin:10px 0}
+    #opts .card{display:grid;grid-template-columns:52px 1fr;text-align:left;align-items:center;padding:10px 12px;column-gap:10px}
+    #opts .card .ic{grid-row:1/4;font-size:34px;text-align:center}
+    #opts .card .nm{font-size:21px;margin:0}
+    #opts .card .ds{margin-top:2px}
+    #opts .card .key{display:none}
+    #chars{grid-template-columns:1fr 1fr}
+    #chars .card .ds{font-size:12px}
+  }
 </style>
 </head>
 <body>
@@ -57,14 +93,26 @@
   <h1>Mar de Recompensas</h1>
   <p class="sub">Tu tripulación ha naufragado en la Isla Calavera. La Armada y los monstruos del mar vienen a por ti. <b>Aguanta 10 minutos</b> y tu recompensa será legendaria.</p>
   <button id="bPlay" class="big">Zarpar</button>
+  <button id="bShop" class="big alt">⚓ Astillero</button>
+  <div id="gold"></div>
   <div id="best"></div>
   <div class="hint">Mover: WASD / flechas, o arrastra el dedo en pantalla<br>Los ataques son automáticos · P / Esc = pausa</div>
 </div></div>
 
 <div id="select" class="ov"><div class="panel wide">
   <h2>Elige a tu pirata</h2>
+  <div id="selGold" class="goldline"></div>
   <div id="chars" class="cards"></div>
   <button id="bBack" class="ghost">Volver</button>
+</div></div>
+
+<div id="shop" class="ov"><div class="panel wide">
+  <h2>Astillero</h2>
+  <div class="sub" style="margin:0 0 4px">Mejoras permanentes para todas tus partidas</div>
+  <div id="shopGold" class="goldline"></div>
+  <div id="upg" class="cards"></div>
+  <button id="bShopBack" class="big">Listo</button><br>
+  <button id="bRefund" class="ghost">Reembolsar mejoras</button>
 </div></div>
 
 <div id="levelup" class="ov"><div class="panel wide">
@@ -90,11 +138,18 @@
     <div class="pstats" id="oStats"></div>
   </div>
   <div id="oMsg"></div>
-  <div class="row"><button id="bRetry" class="big">Otra vez</button><button id="bMenu" class="ghost">Menú</button></div>
+  <div id="oGold" class="goldline"></div>
+  <div class="row"><button id="bRetry" class="big">Otra vez</button><button id="bShop2" class="big alt">⚓ Astillero</button><button id="bMenu" class="ghost">Menú</button></div>
 </div>
 
 <script src="js/config.js"></script>
 <script src="js/dibujo.js"></script>
 <script src="js/juego.js"></script>
+<script>
+  // Modo app instalable (PWA): solo funciona servido por https o localhost
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+    try { navigator.serviceWorker.register('sw.js').catch(() => {}); } catch (e) {}
+  }
+</script>
 </body>
 </html>

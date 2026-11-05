@@ -23,11 +23,16 @@ npx serve .
 - **Enemigos:** soldados de la Armada, cangrejos, hombres-tiburón, capitanes y emboscadas cada 75 s
 - **Jefes:** Comodoro de Hierro (3:00), Rey Kraken (6:00), Almirante Tormenta (9:00)
 - **Recompensa:** sube con cada derrota; al final se muestra un cartel de "SE BUSCA" y se guarda el récord en el navegador
+- **Astillero (progreso permanente):** cada partida da doblones para comprar mejoras permanentes (vida, daño, recarga, velocidad, área, imán, armadura, regeneración, experiencia, más doblones y un bote salvavidas para revivir) y desbloquear piratas. Las mejoras se pueden reembolsar
+- **App instalable (PWA):** desde el móvil, "Añadir a pantalla de inicio"; funciona sin conexión
 
 ## Estructura del proyecto
 
 ```
 index.html            página, estilos e interfaz
+manifest.webmanifest  datos de la app instalable (nombre, icono, colores)
+sw.js                 caché para jugar sin conexión (sube VERSION al publicar cambios)
+icons/                iconos de la app
 js/config.js          ⚙️ personajes, enemigos, jefes, armas y sprites (editable)
 js/dibujo.js          dibujos hechos con código (se usan si falta un sprite)
 js/juego.js           lógica del juego
@@ -43,7 +48,7 @@ Todo se hace en `js/config.js`, sin tocar el código del juego.
 2. En `js/config.js`, en el personaje o enemigo, apunta el bloque `sprite` a esa imagen:
 
 ```js
-sprite: { src: 'sprites/mi-pirata.png', frames: 4, fps: 10, alto: 70, anclaY: 0.55 },
+sprite: { src: 'sprites/mi-pirata.png', frames: 4, fps: 10, alto: 77, anclaY: 0.62 },
 ```
 
 | Campo      | Qué es |
@@ -51,7 +56,7 @@ sprite: { src: 'sprites/mi-pirata.png', frames: 4, fps: 10, alto: 70, anclaY: 0.
 | `src`      | Ruta de la imagen (PNG con fondo transparente) |
 | `frames`   | Número de fotogramas en la tira horizontal (1 si es una imagen fija) |
 | `fps`      | Velocidad de la animación |
-| `alto`     | Altura en pantalla. Referencia: piratas 70, soldado 48, jefes 150–185 |
+| `alto`     | Altura en pantalla. Referencia: piratas 77, soldado 48, jefes 150–185 |
 | `anclaY`   | Altura (0–1) del centro del personaje dentro de la imagen; los "pies" quedan cerca de 0.8 |
 | `mira`     | `'derecha'` o `'izquierda'`: hacia dónde mira el dibujo original. El juego lo voltea solo |
 | `pixelado` | `true` para pixel art (sin suavizado) |
@@ -60,7 +65,7 @@ sprite: { src: 'sprites/mi-pirata.png', frames: 4, fps: 10, alto: 70, anclaY: 0.
 
 Si una imagen no existe o no carga, el juego usa el dibujo hecho con código y avisa en la consola del navegador. Para volver al dibujo, pon `sprite: null`.
 
-También puedes cambiar `nombre`, `descripcion`, `arma`, `bonus` y estadísticas de enemigos (`vida`, `velocidad`, `dano`...), los nombres e iconos de armas y objetos, y en qué minuto salen los jefes.
+También puedes cambiar `nombre`, `descripcion`, `arma`, `precio` (doblones para desbloquear), `bonus` y estadísticas de enemigos (`vida`, `velocidad`, `dano`...), los nombres e iconos de armas y objetos, y en qué minuto salen los jefes.
 
 ### Volver a generar los sprites de ejemplo
 
@@ -73,3 +78,19 @@ node tools/generar-sprites.js
 ## Probar en local
 
 Abre `index.html` con doble clic, o sirve la carpeta con `npx serve .`.
+
+## Progreso entre partidas
+
+En `js/config.js`, el bloque `progreso` define cuántos doblones se ganan (por derribo, por segundo, por jefe y por victoria) y `mejoras` define cada mejora del Astillero: `valor` por nivel, `max` niveles y `precio` inicial (cada nivel cuesta `crecimientoPrecio` veces más).
+
+El progreso se guarda en el navegador (`localStorage`). Si se juega desde otro navegador o dispositivo, empieza de cero.
+
+## Publicar en internet (GitHub Pages)
+
+1. En GitHub: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+2. Cada vez que se actualiza `main`, el flujo `.github/workflows/pages.yml` publica el juego en
+   `https://<usuario>.github.io/<repositorio>/`.
+
+## Publicar en tiendas (iOS, Android, PC)
+
+Ver [docs/TIENDAS.md](docs/TIENDAS.md).
