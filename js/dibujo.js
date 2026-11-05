@@ -52,6 +52,44 @@ function armaEnMano(c, tipo, r, F, lw, t) {
       c.beginPath(); c.moveTo(-r * 0.2, -r * 1.02); c.quadraticCurveTo(0, -r * 0.92, r * 0.2, -r * 1.02); c.strokeStyle = F('#f6c945'); c.lineWidth = lw * 1.4; c.stroke();
       break;
     }
+    case 'canon':
+      c.rotate(-0.25);
+      c.beginPath(); c.moveTo(-r * 0.05, -r * 0.14); c.lineTo(r * 0.62, -r * 0.2); c.lineTo(r * 0.7, -r * 0.3); c.lineTo(r * 0.78, -r * 0.3);
+      c.lineTo(r * 0.78, r * 0.12); c.lineTo(r * 0.7, r * 0.12); c.lineTo(r * 0.62, r * 0.02); c.lineTo(-r * 0.05, r * 0.06); c.closePath();
+      fs(c, F('#2f3640'), lw);
+      rr(c, r * 0.15, -r * 0.18, r * 0.08, r * 0.26, r * 0.02); fs(c, F('#f6c945'), lw * 0.6);
+      rr(c, -r * 0.25, -r * 0.02, r * 0.3, r * 0.22, r * 0.05); fs(c, F('#7b4a24'), lw);
+      break;
+    case 'hielo': {
+      const g2 = c.createRadialGradient(r * 0.15, -r * 0.2, 1, r * 0.15, -r * 0.2, r * 0.5);
+      g2.addColorStop(0, 'rgba(220,250,255,.9)'); g2.addColorStop(1, 'rgba(120,200,255,0)');
+      c.fillStyle = g2; c.beginPath(); c.arc(r * 0.15, -r * 0.2, r * 0.5, 0, Math.PI * 2); c.fill();
+      c.beginPath();
+      for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2 + t * 2, rad = k % 2 ? r * 0.12 : r * 0.24; c.lineTo(r * 0.15 + Math.cos(a) * rad, -r * 0.2 + Math.sin(a) * rad); }
+      c.closePath(); fs(c, F('#aee6ff'), lw * 0.8);
+      break;
+    }
+    case 'arpon':
+      c.rotate(-1.2);
+      rr(c, -r * 0.45, -r * 0.04, r * 1.45, r * 0.08, r * 0.03); fs(c, F('#8a5a2b'), lw * 0.8);
+      c.beginPath(); c.moveTo(r * 1.0, -r * 0.12); c.lineTo(r * 1.3, 0); c.lineTo(r * 1.0, r * 0.12); c.lineTo(r * 1.06, 0); c.closePath(); fs(c, F('#cfd8dc'), lw * 0.8);
+      c.beginPath(); c.moveTo(r * 0.95, -r * 0.04); c.lineTo(r * 0.85, -r * 0.16); c.moveTo(r * 0.95, r * 0.04); c.lineTo(r * 0.85, r * 0.16); c.strokeStyle = F('#cfd8dc'); c.lineWidth = lw; c.stroke();
+      break;
+    case 'tambor':
+      c.translate(-r * 0.05, r * 0.15);
+      c.beginPath(); c.ellipse(0, r * 0.18, r * 0.32, r * 0.1, 0, 0, Math.PI * 2); fs(c, F('#7b2d26'), lw);
+      rr(c, -r * 0.32, -r * 0.12, r * 0.64, r * 0.3, r * 0.02); fs(c, F('#c0392b'), lw);
+      c.strokeStyle = F('#f6c945'); c.lineWidth = lw * 0.8; c.beginPath();
+      for (let k = 0; k < 4; k++) { const x0 = -r * 0.32 + k * r * 0.16; c.moveTo(x0, -r * 0.1); c.lineTo(x0 + r * 0.16, r * 0.16); }
+      c.stroke();
+      c.beginPath(); c.ellipse(0, -r * 0.12, r * 0.32, r * 0.1, 0, 0, Math.PI * 2); fs(c, F('#f5ecd7'), lw);
+      c.save(); c.rotate(-0.8 + Math.sin(t * 10) * 0.3); rr(c, 0, -r * 0.5, r * 0.06, r * 0.45, r * 0.03); fs(c, F('#8a5a2b'), lw * 0.6);
+      c.beginPath(); c.arc(r * 0.03, -r * 0.52, r * 0.07, 0, Math.PI * 2); fs(c, F('#f5ecd7'), lw * 0.6); c.restore();
+      break;
+    case 'viento':
+      c.strokeStyle = 'rgba(200,240,255,.85)'; c.lineWidth = lw;
+      for (let k = 0; k < 3; k++) { c.beginPath(); c.arc(r * 0.1, -r * 0.15, r * (0.15 + k * 0.1), t * 6 + k, t * 6 + k + 3.5); c.stroke(); }
+      break;
     case 'ancla':
       c.translate(r * 0.1, r * 0.1); c.rotate(0.45);
       c.strokeStyle = F('#4b5a69'); c.lineWidth = r * 0.12;
@@ -88,6 +126,14 @@ function pirata(c, x, y, r, d, face, t, moving, flash, conSombra = true) {
     c.quadraticCurveTo(-r * 0.45, r * 0.15, -r * 0.3, r * 0.22);
     c.quadraticCurveTo(-r * 0.15, -r * 0.2, r * 0.05, -r * 0.5); c.closePath();
     fs(c, F(shade(hair, -0.15)), lw);
+  }
+  // coleta (detrás)
+  if (d.peinado === 'coleta') {
+    c.beginPath(); c.moveTo(-r * 0.45, -r * 1.05);
+    c.quadraticCurveTo(-r * 1.05, -r * 0.95, -r * 0.95 - sw * r * 0.1, -r * 0.2);
+    c.quadraticCurveTo(-r * 0.8, -r * 0.55, -r * 0.4, -r * 0.7); c.closePath();
+    fs(c, F(shade(hair, -0.1)), lw);
+    c.beginPath(); c.arc(-r * 0.52, -r * 0.98, r * 0.09, 0, Math.PI * 2); fs(c, F(d.colorSombrero && d.sombrero === 'ninguno' ? d.colorSombrero : '#e74c3c'), lw * 0.7);
   }
   // brazo trasero
   rr(c, -r * 0.72, -r * 0.15 - sw * r * 0.05, r * 0.26, r * 0.55, r * 0.12); fs(c, F(shade(coat, -0.25)), lw);
@@ -160,7 +206,7 @@ function pirata(c, x, y, r, d, face, t, moving, flash, conSombra = true) {
   // flequillo / peinado frontal
   c.beginPath();
   switch (d.peinado) {
-    case 'largo': case 'melena':
+    case 'largo': case 'melena': case 'coleta':
       c.moveTo(-r * 0.58, -r * 0.7); c.quadraticCurveTo(-r * 0.55, -r * 1.45, r * 0.15, -r * 1.38);
       c.quadraticCurveTo(r * 0.65, -r * 1.3, r * 0.68, -r * 0.92);
       c.lineTo(r * 0.5, -r * 1.05); c.lineTo(r * 0.38, -r * 0.94); c.lineTo(r * 0.24, -r * 1.08); c.lineTo(r * 0.08, -r * 0.96); c.lineTo(-r * 0.1, -r * 1.08);
@@ -200,6 +246,14 @@ function pirata(c, x, y, r, d, face, t, moving, flash, conSombra = true) {
       c.fillStyle = F('#f6c945'); c.beginPath();
       for (let k = 0; k < 10; k++) { const a = k / 10 * Math.PI * 2 - Math.PI / 2, rad = k % 2 ? r * 0.06 : r * 0.14; c.lineTo(r * 0.4 + Math.cos(a) * rad, -r * 0.02 + Math.sin(a) * rad); }
       c.fill(); c.restore();
+      break;
+    case 'gorro':
+      c.beginPath(); c.moveTo(-r * 0.62, -r * 0.95); c.quadraticCurveTo(-r * 0.6, -r * 1.6, r * 0.05, -r * 1.6);
+      c.quadraticCurveTo(r * 0.7, -r * 1.6, r * 0.72, -r * 0.95); c.closePath(); fs(c, F(hc), lw);
+      rr(c, -r * 0.66, -r * 1.08, r * 1.42, r * 0.2, r * 0.08); fs(c, F(shade(hc, -0.2)), lw);
+      c.strokeStyle = 'rgba(0,0,0,.18)'; c.lineWidth = lw * 0.6;
+      for (let k = 0; k < 5; k++) { const x0 = -r * 0.4 + k * r * 0.22; c.beginPath(); c.moveTo(x0, -r * 1.1); c.lineTo(x0 + r * 0.05, -r * 1.5); c.stroke(); }
+      c.beginPath(); c.arc(r * 0.05, -r * 1.68, r * 0.13, 0, Math.PI * 2); fs(c, F('#f5ecd7'), lw * 0.8);
       break;
     case 'capitan':
       c.beginPath(); c.moveTo(-r * 1.05, -r * 1.12); c.quadraticCurveTo(-r * 0.4, -r * 1.3, 0, -r * 1.22); c.quadraticCurveTo(r * 0.45, -r * 1.3, r * 1.1, -r * 1.12);

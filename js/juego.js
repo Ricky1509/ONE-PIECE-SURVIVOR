@@ -81,6 +81,50 @@ const costAt = (k, l) => Math.round(MEJORAS[k].precio * Math.pow(PROG.crecimient
 const upgradeCost = k => costAt(k, ml(k));
 const isUnlocked = ch => !ch.price || SAVE.desbloqueados.includes(ch.id);
 
+// ---------- Frutas, misiones, tesoros ----------
+const FRUTAS = CFG.frutas || {};
+const MISIONES = CFG.misiones || [];
+const TESOROS = CFG.tesoros || {};
+const COFRE = Object.assign({ precio: 250, precio10: 2250, garantiaLegendario: 50, probabilidades: { comun: 60, raro: 28, epico: 10, legendario: 2 },
+  reembolso: { comun: 30, raro: 80, epico: 200, legendario: 600 }, nivelMax: 5, ranuras: 3 }, CFG.cofre || {});
+const RAREZAS = { comun: { nombre: 'Común', color: '#95a5a6' }, raro: { nombre: 'Raro', color: '#3498db' }, epico: { nombre: 'Épico', color: '#9b59b6' }, legendario: { nombre: 'Legendario', color: '#f39c12' } };
+const RAR_ORDER = ['comun', 'raro', 'epico', 'legendario'];
+const MP = CFG.mejorasPartida || {};
+const RP = Object.assign({ comun: 60, raro: 27, epico: 10, legendario: 3 }, CFG.rarezasPartida || {});
+function rollRunRarity() { let tot = RAR_ORDER.reduce((a, r) => a + (RP[r] || 0), 0), x = Math.random() * tot; for (const r of RAR_ORDER) { x -= RP[r] || 0; if (x < 0) return r; } return 'comun'; }
+const rs = k => (G && G.runStats[k]) || 0; // mejoras con rareza de esta partida
+SAVE.cobradas = SAVE.cobradas || [];
+SAVE.inv = SAVE.inv || {};
+SAVE.equip = (SAVE.equip || []).filter(id => TESOROS[id] && SAVE.inv[id]);
+SAVE.tiradas = SAVE.tiradas || 0; SAVE.pity = SAVE.pity || 0;
+SAVE.stats = Object.assign({ derribos: 0, mejorTiempo: 0, mejorNivel: 0, frutas: 0, jefes: {}, piratas: [], maxArmas: 0, mejorRecompensa: 0, porTipo: {},
+  mejorasCompradas: Object.values(SAVE.mejoras).reduce((a, b) => a + b, 0) }, SAVE.stats || {});
+// Bonus de los tesoros equipados
+const itemMul = id => 1 + 0.25 * ((SAVE.inv[id] || 1) - 1);
+function ib(stat) { let v = 0; for (const id of SAVE.equip) { const it = TESOROS[id]; if (it && it.stats && it.stats[stat]) v += it.stats[stat] * itemMul(id); } return v; }
+// Frutas activas
+function buffMul(efecto) { let m = 1; if (G) for (const k in G.buffs) if (G.buffs[k] > 0 && FRUTAS[k] && FRUTAS[k].efecto === efecto && efecto !== 'armadura') m *= FRUTAS[k].valor; return m; }
+function buffAdd(efecto) { let v = 0; if (G) for (const k in G.buffs) if (G.buffs[k] > 0 && FRUTAS[k] && FRUTAS[k].efecto === efecto) v += FRUTAS[k].valor; return v; }
+function misionProgreso(m) {
+  const st = SAVE.stats, [tipo, arg] = m.tipo.split(':');
+  switch (tipo) {
+    case 'derribos': return st.derribos;
+    case 'tiempo': return st.mejorTiempo;
+    case 'victorias': return SAVE.victorias;
+    case 'jefe': return st.jefes[arg] || 0;
+    case 'nivel': return st.mejorNivel;
+    case 'frutas': return st.frutas;
+    case 'piratas': return st.piratas.length;
+    case 'mejoras': return st.mejorasCompradas;
+    case 'armas': return st.maxArmas;
+    case 'recompensa': return st.mejorRecompensa;
+    case 'tiradas': return SAVE.tiradas;
+    case 'tesoros': return Object.keys(SAVE.inv).filter(k => SAVE.inv[k] > 0).length;
+  }
+  return 0;
+}
+const misionesListas = () => MISIONES.filter(m => misionProgreso(m) >= m.meta && !SAVE.cobradas.includes(m.id)).length;
+
 // ---------- Sprites ----------
 // Cada sprite es una tira horizontal de fotogramas. Si no carga, se usa el dibujo procedural.
 const SPR = {};
@@ -129,6 +173,7 @@ function newGame(ch) {
     p: { x: 0, y: 0, r: 14, hp: 100, iframe: 0, hurtT: 0, face: 0, mvx: 0, mvy: 0, moving: false, xp: 0, lvl: 1, xpNext: 5 },
     weapons: [], passives: {}, enemies: [], bullets: [], balls: [], fx: [], coins: [], items: [], nums: [], parts: [],
     pending: 0, banner: null, st: null, revives: Math.floor(pm('revivir')), gold: 0,
+    buffs: {}, waves: [], tornados: [], fruits: 0, bossKinds: [], killsBy: {}, runStats: {}, runPicks: [],
   };
   G.weapons.push({ id: ch.weapon, lvl: 1, t: 0.3 });
   recalc(); G.p.hp = G.st.maxHp;
@@ -136,16 +181,16 @@ function newGame(ch) {
 function recalc() {
   const c = G.ch.bonus || {}, lv = k => G.passives[k] || 0, old = G.st;
   G.st = {
-    might: (1 + 0.1 * lv('polvora')) * (1 + pm('dano')),
-    cd: (c.cooldown || 1) * (1 - 0.08 * lv('reloj')) * Math.max(0.3, 1 - pm('recarga')),
-    area: (c.area || 1) * (1 + 0.1 * lv('catalejo')) * (1 + pm('area')),
+    might: (1 + 0.1 * lv('polvora')) * (1 + pm('dano') + ib('dano') + rs('dano')) * buffMul('dano'),
+    cd: (c.cooldown || 1) * (1 - 0.08 * lv('reloj')) * Math.max(0.3, 1 - pm('recarga') - ib('recarga') - rs('recarga')),
+    area: (c.area || 1) * (1 + 0.1 * lv('catalejo')) * (1 + pm('area') + ib('area') + rs('area')),
     amount: lv('loro'),
-    speed: 150 * (c.speed || 1) * (1 + 0.1 * lv('botas')) * (1 + pm('velocidad')),
-    magnet: 75 * (1 + 0.3 * lv('brujula')) * (1 + pm('iman')),
-    armor: (c.armor || 0) + lv('coraza') + pm('armadura'),
-    regen: 0.3 * lv('coraza') + pm('regen'),
-    maxHp: 100 * (c.maxHp || 1) * (1 + 0.2 * lv('ron')) * (1 + pm('vida')),
-    xpMul: 1 + pm('experiencia'),
+    speed: 150 * (c.speed || 1) * (1 + 0.1 * lv('botas')) * (1 + pm('velocidad') + ib('velocidad') + rs('velocidad')) * buffMul('velocidad'),
+    magnet: 75 * (1 + 0.3 * lv('brujula')) * (1 + pm('iman') + ib('iman') + rs('iman')),
+    armor: (c.armor || 0) + lv('coraza') + pm('armadura') + ib('armadura') + rs('armadura') + buffAdd('armadura'),
+    regen: 0.3 * lv('coraza') + pm('regen') + ib('regen') + rs('regen'),
+    maxHp: 100 * (c.maxHp || 1) * (1 + 0.2 * lv('ron')) * (1 + pm('vida') + ib('vida') + rs('vida')),
+    xpMul: (1 + pm('experiencia') + ib('experiencia') + rs('experiencia')) * buffMul('experiencia'),
   };
   if (old && G.st.maxHp > old.maxHp) G.p.hp += G.st.maxHp - old.maxHp;
   G.p.hp = Math.min(G.p.hp, G.st.maxHp);
@@ -197,14 +242,21 @@ function killEnemy(e) {
     const a = rnd(0, TAU), s = rnd(40, e.boss ? 260 : 140);
     G.parts.push({ x: e.x, y: e.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, t: rnd(.3, .6), c: col, r: rnd(2, 4) });
   }
+  G.killsBy[e.kind] = (G.killsBy[e.kind] || 0) + 1;
   if (e.boss) {
-    G.bosses++; G.items.push({ k: 'chest', x: e.x, y: e.y });
+    G.bosses++; G.bossKinds.push(e.kind); G.items.push({ k: 'chest', x: e.x, y: e.y }); dropFruit(e.x + 30, e.y);
     banner('¡' + ETYPES[e.kind].boss + ' derrotado!'); shake = 12; snd('boom');
   } else {
     const r = Math.random();
-    if (r < 0.006) G.items.push({ k: 'food', x: e.x, y: e.y });
+    const pf = e.kind === 'capitan' ? (CFG.probabilidadFrutaCapitan ?? 0.08) : (CFG.probabilidadFruta ?? 0.004);
+    if (Math.random() < pf) dropFruit(e.x, e.y);
+    else if (r < 0.006) G.items.push({ k: 'food', x: e.x, y: e.y });
     else if (r < 0.0085) G.items.push({ k: 'magnet', x: e.x, y: e.y });
   }
+}
+function dropFruit(x, y) {
+  const ks = Object.keys(FRUTAS); if (!ks.length) return;
+  G.items.push({ k: 'fruit', f: ks[Math.random() * ks.length | 0], x, y });
 }
 function dropCoin(x, y, v) {
   if (G.coins.length > 450) { G.coins[Math.random() * G.coins.length | 0].v += v; return; }
@@ -343,6 +395,55 @@ function updateWeapons(dt) {
         }
         break;
       }
+      case 'hielo': {
+        w.t -= dt;
+        if (w.t <= 0) {
+          w.t = 1.4 * st.cd;
+          const n = 6 + 2 * (+(L >= 2)) + 2 * (+(L >= 4)) + 2 * st.amount;
+          const dmg = 8 * (L >= 3 ? 1.4 : 1) * st.might, slowT = L >= 4 ? 2.5 : 1.5, slowA = L >= 5 ? 0.8 : 0.5, off = rnd(0, TAU);
+          for (let i = 0; i < n; i++) {
+            const a = off + i * TAU / n;
+            G.bullets.push({ kind: 'hielo', x: p.x, y: p.y, vx: Math.cos(a) * 380, vy: Math.sin(a) * 380, r: 6, dmg, pierce: 0, life: 0.9 * st.area, hit: new Set(), slowT, slowA });
+          }
+          snd('zap');
+        }
+        break;
+      }
+      case 'arpon': {
+        w.t -= dt;
+        if (w.t <= 0) {
+          w.t = 1.6 * st.cd;
+          const tg = nearestEnemy(p.x, p.y, 450), base = tg ? Math.atan2(tg.y - p.y, tg.x - p.x) : p.face;
+          const n = 1 + (+(L >= 2)) + (+(L >= 4)) + st.amount, dmg = 22 * (L >= 3 ? 1.3 : 1) * st.might, spd = L >= 5 ? 620 : 480;
+          for (let i = 0; i < n; i++) {
+            const a = base + (i - (n - 1) / 2) * 0.35;
+            G.bullets.push({ kind: 'arpon', x: p.x, y: p.y, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd, r: 8, dmg, pierce: 1e9, life: 3, out: L >= 5 ? 0.6 : 0.45, hit: new Set() });
+          }
+          snd('shot');
+        }
+        break;
+      }
+      case 'tambor': {
+        const R = 140 * st.area * (L >= 2 ? 1.25 : 1), dmg = 12 * (L >= 3 ? 1.4 : 1) * st.might;
+        const wave = () => { G.waves.push({ x: p.x, y: p.y, R, r: 0, dmg, hit: new Set() }); snd('boom'); };
+        w.t -= dt;
+        if (w.pend > 0) { w.pend -= dt; if (w.pend <= 0) wave(); }
+        if (w.t <= 0) { w.t = 2.0 * st.cd * (L >= 4 ? 0.8 : 1); wave(); if (L >= 5) w.pend = 0.35; }
+        break;
+      }
+      case 'viento': {
+        w.t -= dt;
+        if (w.t <= 0) {
+          w.t = 3.2 * st.cd;
+          const n = 1 + (+(L >= 2)) + (+(L >= 4)) + st.amount;
+          for (let i = 0; i < n; i++) {
+            const a = rnd(0, TAU);
+            G.tornados.push({ x: p.x, y: p.y, vx: Math.cos(a) * 100, vy: Math.sin(a) * 100, R: 34 * st.area * (L >= 3 ? 1.3 : 1),
+              dmg: 7 * (L >= 3 ? 1.4 : 1) * st.might, life: L >= 5 ? 6 : 3, tick: 0, ph: rnd(0, TAU) });
+          }
+        }
+        break;
+      }
     }
   }
 }
@@ -395,6 +496,7 @@ function updateEnemies(dt) {
     const dx = p.x - e.x, dy = p.y - e.y, d = Math.hypot(dx, dy) || 1;
     if (!e.boss && d > farR) { const [x, y] = ringPos(true); e.x = x; e.y = y; continue; }
     let sp = e.spd, ux = dx / d, uy = dy / d;
+    if (e.slowT > 0) { e.slowT -= dt; sp *= 1 - (e.slowA || 0.5); if (e.slowT <= 0) e.slowA = 0; }
     if (e.boss) {
       e.dashCd -= dt;
       if (e.dash > 0) { e.dash -= dt; sp *= 3.2; ux = e.ddx; uy = e.ddy; }
@@ -440,16 +542,31 @@ function update(dt) {
   p.iframe -= dt; p.hurtT -= dt;
   p.hp = Math.min(st.maxHp, p.hp + st.regen * dt);
 
+  let buffChanged = false;
+  for (const k in G.buffs) if (G.buffs[k] > 0) { G.buffs[k] -= dt; if (G.buffs[k] <= 0) { G.buffs[k] = 0; buffChanged = true; } }
+  if (buffChanged) recalc();
+
   buildGrid();
   updateWeapons(dt);
 
   for (const b of G.bullets) {
+    if (b.kind === 'arpon') { // va, se frena y vuelve a la mano
+      b.out -= dt;
+      if (b.out <= 0) {
+        if (!b.back) { b.back = true; b.hit.clear(); }
+        const dx = p.x - b.x, dy = p.y - b.y, d = Math.hypot(dx, dy) || 1, sp = Math.hypot(b.vx, b.vy);
+        b.vx = dx / d * sp; b.vy = dy / d * sp;
+        if (d < 22) { b.life = 0; continue; }
+      }
+    }
     b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
     if (b.life <= 0) continue;
     queryR(b.x, b.y, b.r, e => {
       if (b.life <= 0 || b.hit.has(e)) return;
       if ((e.x - b.x) ** 2 + (e.y - b.y) ** 2 < (e.r + b.r) ** 2) {
-        b.hit.add(e); hurt(e, b.dmg, b.vx * 0.25, b.vy * 0.25);
+        b.hit.add(e);
+        if (b.slowT) { e.slowT = Math.max(e.slowT || 0, b.slowT); e.slowA = Math.max(e.slowA || 0, b.slowA); }
+        hurt(e, b.dmg, b.vx * 0.25, b.vy * 0.25);
         if (b.pierce-- <= 0) b.life = 0;
       }
     });
@@ -470,6 +587,29 @@ function update(dt) {
   }
   G.balls = G.balls.filter(c => !c.done);
 
+  for (const wv of G.waves) {
+    wv.r += dt * wv.R * 2.4; wv.x = p.x; wv.y = p.y;
+    queryR(wv.x, wv.y, wv.r, e => {
+      if (wv.hit.has(e)) return;
+      const dx = e.x - wv.x, dy = e.y - wv.y, d = Math.hypot(dx, dy) || 1;
+      if (d < wv.r + e.r && d > wv.r - 30) { wv.hit.add(e); hurt(e, wv.dmg, dx / d * 420, dy / d * 420); }
+    });
+  }
+  G.waves = G.waves.filter(wv => wv.r < wv.R);
+  for (const tw of G.tornados) {
+    tw.life -= dt; tw.ph += dt * 10;
+    const dx = p.x - tw.x, dy = p.y - tw.y, d = Math.hypot(dx, dy) || 1, cur = Math.atan2(tw.vy, tw.vx);
+    const back = d > 280 ? Math.sign(Math.sin(Math.atan2(dy, dx) - cur)) * 2.5 * dt : 0;
+    const a = cur + rnd(-1.5, 1.5) * dt + back;
+    tw.vx = Math.cos(a) * 100; tw.vy = Math.sin(a) * 100; tw.x += tw.vx * dt; tw.y += tw.vy * dt;
+    tw.tick -= dt;
+    if (tw.tick <= 0) {
+      tw.tick = 0.3;
+      queryR(tw.x, tw.y, tw.R, e => { const ex = tw.x - e.x, ey = tw.y - e.y, dd = Math.hypot(ex, ey) || 1; if (dd < tw.R + e.r) hurt(e, tw.dmg, ex / dd * 120, ey / dd * 120); });
+    }
+  }
+  G.tornados = G.tornados.filter(tw => tw.life > 0);
+
   updateEnemies(dt);
   G.enemies = G.enemies.filter(e => !e.dead);
 
@@ -489,6 +629,7 @@ function update(dt) {
       if (it.k === 'food') { p.hp = Math.min(st.maxHp, p.hp + st.maxHp * 0.3); banner('+30% vida'); snd('level'); }
       else if (it.k === 'magnet') { for (const c of G.coins) c.mag = true; banner('¡Caracola imantada!'); snd('chest'); }
       else if (it.k === 'chest') { G.bounty += 1e6; G.pending++; openChest = true; snd('chest'); }
+      else if (it.k === 'fruit') { const fr = FRUTAS[it.f]; G.buffs[it.f] = fr.duracion; G.fruits++; recalc(); banner(fr.nombre + ': ' + fr.descripcion); snd('level'); }
     }
   }
   G.items = G.items.filter(i => !i.dead);
@@ -556,6 +697,7 @@ function drawEnemy(e) {
     drawShadow(ctx, e.x, e.y, r);
     drawSprite(ctx, key, e.x, e.y, Math.floor(G.t * o.cfg.fps) + e.seed, G.p.x < e.x, e.flash > 0);
   } else MDR_DIBUJO.enemigo(ctx, e.kind, e.x, e.y, r, e.ph, e.flash > 0);
+  if (e.slowT > 0) { ctx.fillStyle = 'rgba(150,220,255,.35)'; ctx.beginPath(); ctx.arc(e.x, e.y, r * 1.1, 0, TAU); ctx.fill(); }
   if (!e.boss && e.hp < e.maxHp && e.maxHp > 40) {
     ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.fillRect(e.x - r, e.y - r * 1.6, r * 2, 3);
     ctx.fillStyle = '#e74c3c'; ctx.fillRect(e.x - r, e.y - r * 1.6, r * 2 * Math.max(0, e.hp / e.maxHp), 3);
@@ -567,6 +709,21 @@ function drawAnchor(x, y, a) {
   c.beginPath(); c.moveTo(0, -12); c.lineTo(0, 12); c.moveTo(-7, -6); c.lineTo(7, -6); c.stroke();
   c.beginPath(); c.arc(0, 4, 11, 0.2, Math.PI - 0.2); c.stroke();
   c.beginPath(); c.arc(0, -15, 3.5, 0, TAU); c.stroke();
+  c.restore();
+}
+// Fruta de poder (diseño original: fruta redonda con espirales y hoja)
+function drawFruit(c, x, y, r, col, t) {
+  c.save(); c.translate(x, y);
+  const g = c.createRadialGradient(0, 0, r * 0.5, 0, 0, r * 2.4);
+  g.addColorStop(0, col + '88'); g.addColorStop(1, col + '00');
+  c.fillStyle = g; c.beginPath(); c.arc(0, 0, r * (2.2 + Math.sin(t * 6) * 0.2), 0, TAU); c.fill();
+  c.fillStyle = col; c.strokeStyle = '#1b1410'; c.lineWidth = 1.5;
+  c.beginPath(); c.arc(0, 0, r, 0, TAU); c.fill(); c.stroke();
+  c.strokeStyle = 'rgba(0,0,0,.28)'; c.lineWidth = 1.4;
+  for (const [ox, oy] of [[-r * 0.35, -r * 0.2], [r * 0.4, r * 0.15], [-r * 0.1, r * 0.5]]) { c.beginPath(); c.arc(ox, oy, r * 0.28, 0, Math.PI * 1.5); c.stroke(); }
+  c.fillStyle = 'rgba(255,255,255,.6)'; c.beginPath(); c.ellipse(-r * 0.4, -r * 0.45, r * 0.22, r * 0.12, -0.6, 0, TAU); c.fill();
+  c.strokeStyle = '#5a3519'; c.lineWidth = 2; c.beginPath(); c.moveTo(0, -r); c.quadraticCurveTo(r * 0.1, -r * 1.4, r * 0.3, -r * 1.5); c.stroke();
+  c.fillStyle = '#2e8b57'; c.beginPath(); c.ellipse(r * 0.45, -r * 1.3, r * 0.45, r * 0.2, -0.5, 0, TAU); c.fill();
   c.restore();
 }
 function drawChest(x, y, t) {
@@ -589,6 +746,7 @@ function drawWorld() {
   }
   for (const it of G.items) {
     if (it.k === 'chest') { drawChest(it.x, it.y, t); continue; }
+    if (it.k === 'fruit') { drawFruit(ctx, it.x, it.y + Math.sin(t * 5) * 2, 9, FRUTAS[it.f].color, t); continue; }
     ctx.font = '22px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(it.k === 'food' ? '🍗' : '🧲', it.x, it.y + Math.sin(t * 5) * 2);
   }
@@ -617,8 +775,38 @@ function drawWorld() {
       drawAnchor(ax, ay, a);
     }
   }
+  // ondas del tambor
+  for (const wv of G.waves) {
+    ctx.strokeStyle = `rgba(255,220,150,${0.9 * (1 - wv.r / wv.R)})`; ctx.lineWidth = 10;
+    ctx.beginPath(); ctx.arc(p.x, p.y, wv.r, 0, TAU); ctx.stroke();
+    ctx.strokeStyle = `rgba(255,255,255,${0.6 * (1 - wv.r / wv.R)})`; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(0, wv.r - 8), 0, TAU); ctx.stroke();
+  }
+  // tornados
+  for (const tw of G.tornados) {
+    const al = Math.min(1, tw.life * 2);
+    ctx.fillStyle = `rgba(0,0,0,${0.12 * al})`; ctx.beginPath(); ctx.ellipse(tw.x, tw.y + 6, tw.R * 0.7, tw.R * 0.25, 0, 0, TAU); ctx.fill();
+    for (let i = 0; i < 6; i++) {
+      ctx.strokeStyle = `rgba(225,240,250,${0.75 * al})`; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.ellipse(tw.x + Math.sin(tw.ph + i) * 4, tw.y - i * tw.R * 0.28, tw.R * (0.3 + i * 0.13), tw.R * (0.1 + i * 0.03), 0, tw.ph + i, tw.ph + i + 4.5); ctx.stroke();
+    }
+  }
   // balas
   for (const b of G.bullets) {
+    if (b.kind === 'arpon') {
+      ctx.strokeStyle = 'rgba(120,90,60,.45)'; ctx.setLineDash([4, 4]); ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(b.x, b.y); ctx.stroke(); ctx.setLineDash([]);
+      ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(Math.atan2(b.vy, b.vx) + (b.back ? Math.PI : 0));
+      ctx.strokeStyle = '#8a5a2b'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(-26, 0); ctx.lineTo(6, 0); ctx.stroke();
+      ctx.fillStyle = '#dfe6ee'; ctx.strokeStyle = '#1b1410'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(15, 0); ctx.lineTo(3, -7); ctx.lineTo(6, 0); ctx.lineTo(3, 7); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.restore(); continue;
+    }
+    if (b.kind === 'hielo') {
+      ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(Math.atan2(b.vy, b.vx));
+      ctx.fillStyle = '#c9f2ff'; ctx.strokeStyle = '#3b8fd0'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(0, -4.5); ctx.lineTo(-8, 0); ctx.lineTo(0, 4.5); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.restore(); continue;
+    }
     ctx.strokeStyle = 'rgba(255,220,120,.6)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(b.x - b.vx * 0.03, b.y - b.vy * 0.03); ctx.stroke();
     ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU); ctx.fill();
   }
@@ -669,6 +857,11 @@ function drawHUD() {
   ctx.textBaseline = 'middle'; ctx.lineWidth = 4; ctx.strokeStyle = '#000';
   const txt = (s, x, y, font, align = 'left', col = '#fff') => { ctx.font = font; ctx.textAlign = align; ctx.strokeText(s, x, y); ctx.fillStyle = col; ctx.fillText(s, x, y); };
   txt('Nivel ' + p.lvl, 10, 72, '900 15px Nunito, sans-serif', 'left', '#9fd8ff');
+  let fy = 96;
+  for (const k in G.buffs) if (G.buffs[k] > 0) {
+    const fr = FRUTAS[k]; drawFruit(ctx, 18, fy, 6, fr.color, G.t);
+    ctx.lineWidth = 4; txt(`${fr.nombre} ${Math.ceil(G.buffs[k])}s`, 32, fy, '900 13px Nunito, sans-serif', 'left', fr.color); fy += 22;
+  }
   txt(mmss(G.t), W / 2, 36, '40px "Pirata One", serif', 'center');
   txt('☠ ' + fmt(G.kills), 10, 28, '900 16px Nunito, sans-serif');
   txt('💰 ' + fmt(G.bounty), 10, 50, '900 16px Nunito, sans-serif', 'left', '#f6c945');
@@ -753,6 +946,7 @@ function refreshBest() {
   const b = store.get('mdr_best', null);
   $('#best').textContent = b ? `Mayor recompensa: 💰 ${fmt(b.bounty)} (${b.name})` : '';
   $('#gold').textContent = `🪙 ${fmt(SAVE.berries)} Berries` + (SAVE.partidas ? ` · ${SAVE.partidas} partidas` : '');
+  const nb = misionesListas(), bd = $('#misBadge'); bd.textContent = nb; bd.classList.toggle('on', nb > 0);
 }
 function buildSelect() {
   const box = $('#chars'); box.innerHTML = '';
@@ -788,7 +982,7 @@ function buildShop() {
       <div class="ds">${m.descripcion}</div><div class="cost">${maxed ? 'Máximo' : '🪙 ' + fmt(cost)}</div>`;
     b.onclick = () => {
       if (maxed || SAVE.berries < cost) return;
-      SAVE.berries -= cost; SAVE.mejoras[k] = l + 1; saveGame(); snd('level'); buildShop();
+      SAVE.berries -= cost; SAVE.mejoras[k] = l + 1; SAVE.stats.mejorasCompradas++; saveGame(); snd('level'); buildShop();
     };
     box.appendChild(b);
   }
@@ -799,8 +993,144 @@ function buildShop() {
 function openShop(from) { shopFrom = from; hide(from); buildShop(); show('shop'); state = 'shop'; }
 function closeShop() { hide('shop'); if (shopFrom === 'over') { show('over'); state = 'over'; } else { refreshBest(); show('menu'); state = 'menu'; } }
 
+// ---------- Paneles del menú ----------
+let panelFrom = 'menu';
+function openPanel(id, from, build) { panelFrom = from; hide(from); build(); show(id); state = id; }
+function closePanel(id) { hide(id); if (panelFrom === 'over') { show('over'); state = 'over'; } else { refreshBest(); show('menu'); state = 'menu'; } }
+const goldLine = () => `🪙 ${fmt(SAVE.berries)} Berries`;
+
+function buildMissions() {
+  $('#misGold').textContent = goldLine();
+  $('#misCount').textContent = `${SAVE.cobradas.length} / ${MISIONES.length} completadas`;
+  const box = $('#misList'); box.innerHTML = '';
+  const rank = m => SAVE.cobradas.includes(m.id) ? 2 : misionProgreso(m) >= m.meta ? 0 : 1;
+  for (const m of MISIONES.slice().sort((a, b) => rank(a) - rank(b))) {
+    const prog = Math.min(misionProgreso(m), m.meta), done = prog >= m.meta, claimed = SAVE.cobradas.includes(m.id);
+    const f = v => m.tipo === 'tiempo' ? mmss(v) : fmt(v);
+    const d = document.createElement('div'); d.className = 'mis' + (claimed ? ' claimed' : done ? ' ready' : '');
+    d.innerHTML = `<div class="mi">${claimed ? '✅' : done ? '🎁' : '📜'}</div><div class="mb"><div class="mn">${m.nombre}</div><div class="md">${m.descripcion}</div>
+      <div class="bar"><i style="width:${prog / m.meta * 100}%"></i></div><div class="mp">${f(prog)} / ${f(m.meta)}</div></div>`;
+    const b = document.createElement('button'); b.className = 'claim'; b.disabled = !done || claimed;
+    b.textContent = claimed ? 'Cobrada' : `🪙 ${fmt(m.recompensa)}`;
+    b.onclick = () => { if (!done || claimed) return; SAVE.cobradas.push(m.id); SAVE.berries += m.recompensa; saveGame(); snd('chest'); buildMissions(); };
+    d.appendChild(b); box.appendChild(d);
+  }
+}
+
+function buildRegistro() {
+  const S = SAVE.stats, jefes = Object.values(S.jefes).reduce((a, b) => a + b, 0);
+  const rows = [['🎮', 'Partidas', SAVE.partidas], ['🏆', 'Victorias', SAVE.victorias], ['☠️', 'Enemigos derrotados', fmt(S.derribos)],
+    ['⏱️', 'Mejor tiempo', mmss(S.mejorTiempo)], ['⭐', 'Mejor nivel', S.mejorNivel], ['💰', 'Mayor recompensa', fmt(S.mejorRecompensa)],
+    ['🍈', 'Frutas comidas', S.frutas], ['👑', 'Jefes derrotados', jefes], ['🏴‍☠️', 'Piratas desbloqueados', `${CHARS.filter(isUnlocked).length} / ${CHARS.length}`],
+    ['⚓', 'Mejoras compradas', S.mejorasCompradas], ['🎁', 'Tesoros', `${Object.keys(SAVE.inv).length} / ${Object.keys(TESOROS).length}`],
+    ['📜', 'Misiones', `${SAVE.cobradas.length} / ${MISIONES.length}`]];
+  $('#regStats').innerHTML = rows.map(([i, n, v]) => `<div class="st"><span>${i}</span><b>${v}</b><small>${n}</small></div>`).join('');
+  const box = $('#bestiario'); box.innerHTML = '';
+  for (const k in ETYPES) {
+    const n = S.porTipo[k] || 0, cv = document.createElement('canvas'); cv.width = 140; cv.height = 140; cv.style.width = cv.style.height = '70px';
+    const c2 = cv.getContext('2d'); c2.scale(2, 2);
+    if (!drawSprite(c2, 'en:' + k, 35, 38, 0, false, false, 60)) MDR_DIBUJO.enemigo(c2, k, 35, 38, 15, 0, false, false);
+    const d = document.createElement('div'); d.className = 'beast' + (n ? '' : ' unknown');
+    d.appendChild(cv);
+    d.insertAdjacentHTML('beforeend', `<div class="bn">${n ? ETYPES[k].name : '???'}</div><div class="bc">${n ? '☠ ' + fmt(n) : 'Sin descubrir'}</div>`);
+    box.appendChild(d);
+  }
+  const fb = $('#frutasInfo'); fb.innerHTML = '';
+  for (const k in FRUTAS) {
+    const fr = FRUTAS[k], cv = document.createElement('canvas'); cv.width = 64; cv.height = 64; cv.style.width = cv.style.height = '32px';
+    const c2 = cv.getContext('2d'); c2.scale(2, 2); drawFruit(c2, 16, 18, 7, fr.color, 0);
+    const d = document.createElement('div'); d.className = 'fruit-row'; d.appendChild(cv);
+    d.insertAdjacentHTML('beforeend', `<div><b style="color:${fr.color}">${fr.nombre}</b><br><small>${fr.descripcion} durante ${fr.duracion}s</small></div>`);
+    fb.appendChild(d);
+  }
+}
+
+// --- Tesoros: textos de bonus ---
+const STAT_TXT = { dano: v => `+${Math.round(v * 100)}% daño`, vida: v => `+${Math.round(v * 100)}% vida`, velocidad: v => `+${Math.round(v * 100)}% velocidad`,
+  area: v => `+${Math.round(v * 100)}% área`, iman: v => `+${Math.round(v * 100)}% recogida`, experiencia: v => `+${Math.round(v * 100)}% experiencia`,
+  berries: v => `+${Math.round(v * 100)}% Berries`, recarga: v => `-${Math.round(v * 100)}% recarga`, armadura: v => `+${+v.toFixed(1)} armadura`, regen: v => `+${+v.toFixed(2)} vida/s` };
+function itemText(id, lvl) { const it = TESOROS[id], m = 1 + 0.25 * ((lvl || 1) - 1); return Object.entries(it.stats || {}).map(([k, v]) => (STAT_TXT[k] || (x => k + ' ' + x))(v * m)).join(' · '); }
+function itemCard(id, extra = '') {
+  const it = TESOROS[id], rz = RAREZAS[it.rareza] || RAREZAS.comun, lvl = SAVE.inv[id] || 0;
+  return `<div class="ic">${it.icono}</div><div class="nm">${it.nombre}</div><div class="rz" style="color:${rz.color}">${rz.nombre}${lvl ? ' · Nv ' + lvl : ''}</div><div class="ds">${itemText(id, lvl || 1)}</div>${extra}`;
+}
+
+// --- Cofre del Tesoro (gacha con Berries) ---
+function rollRarity(minRank) {
+  const P = COFRE.probabilidades, pool = RAR_ORDER.filter((r, i) => i >= minRank && P[r] > 0 && Object.values(TESOROS).some(t => t.rareza === r));
+  let tot = pool.reduce((a, r) => a + P[r], 0), x = Math.random() * tot;
+  for (const r of pool) { x -= P[r]; if (x < 0) return r; }
+  return pool[pool.length - 1];
+}
+function pullOne(minRank) {
+  const forced = SAVE.pity >= COFRE.garantiaLegendario - 1 && Object.values(TESOROS).some(t => t.rareza === 'legendario');
+  const rar = forced ? 'legendario' : rollRarity(minRank);
+  SAVE.pity = rar === 'legendario' ? 0 : SAVE.pity + 1; SAVE.tiradas++;
+  const ids = Object.keys(TESOROS).filter(id => TESOROS[id].rareza === rar), id = ids[Math.random() * ids.length | 0], cur = SAVE.inv[id] || 0;
+  if (!cur) { SAVE.inv[id] = 1; return { id, tag: '¡NUEVO!' }; }
+  if (cur < COFRE.nivelMax) { SAVE.inv[id] = cur + 1; return { id, tag: `Sube a Nv ${cur + 1}` }; }
+  const rb = COFRE.reembolso[rar] || 0; SAVE.berries += rb; return { id, tag: `Máximo: +${fmt(rb)} 🪙` };
+}
+function doPull(n) {
+  const cost = n === 10 ? COFRE.precio10 : COFRE.precio;
+  if (SAVE.berries < cost || !Object.keys(TESOROS).length) return;
+  SAVE.berries -= cost;
+  const res = [];
+  for (let i = 0; i < n; i++) res.push(pullOne(n === 10 && i === 9 ? 1 : 0));
+  for (const r of res) if (!SAVE.equip.includes(r.id) && SAVE.equip.length < COFRE.ranuras) SAVE.equip.push(r.id);
+  saveGame(); snd('chest');
+  const box = $('#pullRes'); box.innerHTML = '';
+  res.forEach((r, i) => {
+    const rz = RAREZAS[TESOROS[r.id].rareza] || RAREZAS.comun, d = document.createElement('div');
+    d.className = 'card loot rar-' + TESOROS[r.id].rareza; d.style.borderColor = rz.color; d.style.animationDelay = (i * 0.08) + 's';
+    d.innerHTML = itemCard(r.id, `<div class="tag">${r.tag}</div>`); box.appendChild(d);
+  });
+  buildCofre(false);
+}
+function buildCofre(clear = true) {
+  $('#cofGold').textContent = goldLine();
+  const P = COFRE.probabilidades;
+  $('#cofRates').innerHTML = RAR_ORDER.map(r => `<span style="color:${RAREZAS[r].color}">${RAREZAS[r].nombre} ${P[r]}%</span>`).join(' · ') +
+    `<br>Legendario garantizado en ${Math.max(1, COFRE.garantiaLegendario - SAVE.pity)} tiradas como máximo`;
+  const b1 = $('#bPull1'), b10 = $('#bPull10');
+  b1.textContent = `Abrir 1 · 🪙 ${fmt(COFRE.precio)}`; b10.textContent = `Abrir 10 · 🪙 ${fmt(COFRE.precio10)}`;
+  b1.disabled = SAVE.berries < COFRE.precio; b10.disabled = SAVE.berries < COFRE.precio10;
+  if (clear) $('#pullRes').innerHTML = '<div class="hint">Cada tirada da un tesoro permanente. Los repetidos suben de nivel.</div>';
+}
+
+// --- Inventario ---
+function buildInventario() {
+  $('#invGold').textContent = goldLine();
+  const slots = $('#invSlots'); slots.innerHTML = '';
+  for (let i = 0; i < COFRE.ranuras; i++) {
+    const id = SAVE.equip[i], d = document.createElement('button'); d.className = 'slot';
+    if (id) { const rz = RAREZAS[TESOROS[id].rareza]; d.style.borderColor = rz.color; d.innerHTML = `<span class="si">${TESOROS[id].icono}</span><small>${TESOROS[id].nombre}</small>`; d.onclick = () => { SAVE.equip.splice(i, 1); saveGame(); buildInventario(); }; }
+    else { d.innerHTML = '<span class="si">➕</span><small>Vacío</small>'; d.disabled = true; }
+    slots.appendChild(d);
+  }
+  const tot = {};
+  for (const id of SAVE.equip) for (const [k, v] of Object.entries(TESOROS[id].stats || {})) tot[k] = (tot[k] || 0) + v * itemMul(id);
+  $('#invTotal').textContent = Object.keys(tot).length ? 'Bonus equipados: ' + Object.entries(tot).map(([k, v]) => (STAT_TXT[k] || (x => k))(v)).join(' · ') : 'Equipa tesoros para obtener bonus en todas tus partidas.';
+  const grid = $('#invGrid'); grid.innerHTML = '';
+  const ids = Object.keys(TESOROS).sort((a, b) => RAR_ORDER.indexOf(TESOROS[b].rareza) - RAR_ORDER.indexOf(TESOROS[a].rareza) || (SAVE.inv[b] ? 1 : 0) - (SAVE.inv[a] ? 1 : 0));
+  for (const id of ids) {
+    const owned = (SAVE.inv[id] || 0) > 0, eq = SAVE.equip.includes(id), rz = RAREZAS[TESOROS[id].rareza] || RAREZAS.comun;
+    const b = document.createElement('button'); b.className = 'card loot' + (owned ? '' : ' unknown') + (eq ? ' equipped' : ''); b.style.borderColor = rz.color;
+    b.innerHTML = owned ? itemCard(id, `<div class="tag">${eq ? '✔ Equipado' : 'Equipar'}</div>`) : `<div class="ic">❔</div><div class="nm">???</div><div class="rz" style="color:${rz.color}">${rz.nombre}</div>`;
+    b.onclick = () => {
+      if (!owned) return;
+      if (eq) SAVE.equip = SAVE.equip.filter(x => x !== id);
+      else if (SAVE.equip.length < COFRE.ranuras) SAVE.equip.push(id);
+      else { $('#invTotal').textContent = `Tienes las ${COFRE.ranuras} ranuras ocupadas: toca un tesoro equipado para quitarlo.`; return; }
+      saveGame(); buildInventario();
+    };
+    grid.appendChild(b);
+  }
+}
+
 function startGame(ch) {
   initAudio(); if (AC && AC.state === 'suspended') AC.resume();
+  if (!SAVE.stats.piratas.includes(ch.id)) { SAVE.stats.piratas.push(ch.id); saveGame(); }
   newGame(ch); hide('select'); hide('over'); hide('menu'); setTopBtns(true); state = 'play'; last = performance.now();
 }
 function getOptions(n) {
@@ -809,13 +1139,18 @@ function getOptions(n) {
   if (G.weapons.length < 6) for (const id in WEAPONS) if (!G.weapons.find(w => w.id === id)) opts.push({ type: 'w', id, lvl: 1 });
   const pc = Object.keys(G.passives).length;
   for (const id in PASSIVES) { const l = G.passives[id] || 0; if (l < PASSIVES[id].max && (l > 0 || pc < 6)) opts.push({ type: 'p', id, lvl: l + 1 }); }
-  const res = shuffle(opts).slice(0, n);
+  // mejoras con rareza: siempre disponibles; 1-2 por subida (más si ya no quedan armas/objetos)
+  const ids = shuffle(Object.keys(MP));
+  const nb = opts.length ? (Math.random() < 0.5 ? 1 : 2) : n;
+  const res = shuffle(opts).slice(0, Math.max(0, n - nb));
+  for (const id of ids) { if (res.length >= n) break; res.push({ type: 'b', id, rar: rollRunRarity() }); }
   if (!res.length) res.push({ type: 'heal' }, { type: 'gold' });
-  return res;
+  return shuffle(res);
 }
 function optInfo(o) {
   if (o.type === 'w') { const d = WEAPONS[o.id]; return { icon: d.icon, name: d.name, tag: o.lvl === 1 ? '¡Nueva arma!' : 'Nivel ' + o.lvl, desc: d.desc[o.lvl - 1] }; }
   if (o.type === 'p') { const d = PASSIVES[o.id]; return { icon: d.icon, name: d.name, tag: o.lvl === 1 ? '¡Nuevo objeto!' : 'Nivel ' + o.lvl, desc: d.desc }; }
+  if (o.type === 'b') { const d = MP[o.id], ri = RAR_ORDER.indexOf(o.rar), v = d.valores[ri]; return { icon: d.icono, name: d.name || d.nombre, tag: RAREZAS[o.rar].nombre, desc: (STAT_TXT[d.stat] || (x => d.stat + ' ' + x))(v), rar: o.rar }; }
   if (o.type === 'heal') return { icon: '🍗', name: 'Banquete', tag: 'Extra', desc: 'Recupera un 50% de vida' };
   return { icon: '💰', name: 'Botín', tag: 'Extra', desc: '+500.000 de recompensa' };
 }
@@ -828,7 +1163,8 @@ function openLevelUp(isChest) {
   cardsReadyAt = performance.now() + 250;
   curOpts.forEach((o, i) => {
     const inf = optInfo(o), b = document.createElement('button'); b.className = 'card';
-    b.innerHTML = `<div class="key">${i + 1}</div><div class="ic">${inf.icon}</div><div class="nm">${inf.name}</div><div class="lv">${inf.tag}</div><div class="ds">${inf.desc}</div>`;
+    b.innerHTML = `<div class="key">${i + 1}</div><div class="ic">${inf.icon}</div><div class="nm">${inf.name}</div><div class="lv"${inf.rar ? ` style="color:${RAREZAS[inf.rar].color}"` : ''}>${inf.tag}</div><div class="ds">${inf.desc}</div>`;
+    if (inf.rar) { b.classList.add('rar-' + inf.rar); b.style.borderColor = RAREZAS[inf.rar].color; }
     b.onclick = () => chooseOpt(o);
     box.appendChild(b);
   });
@@ -838,6 +1174,7 @@ function chooseOpt(o) {
   if (performance.now() < cardsReadyAt || state !== 'levelup') return;
   if (o.type === 'w') { const w = G.weapons.find(x => x.id === o.id); if (w) w.lvl++; else G.weapons.push({ id: o.id, lvl: 1, t: 0.2 }); }
   else if (o.type === 'p') { G.passives[o.id] = o.lvl; recalc(); }
+  else if (o.type === 'b') { const d = MP[o.id], v = d.valores[RAR_ORDER.indexOf(o.rar)]; G.runStats[d.stat] = (G.runStats[d.stat] || 0) + v; G.runPicks.push(o); recalc(); }
   else if (o.type === 'heal') G.p.hp = Math.min(G.st.maxHp, G.p.hp + G.st.maxHp * 0.5);
   else G.bounty += 5e5;
   G.pending--;
@@ -854,7 +1191,8 @@ function pauseGame() {
     ⚔️ Daño: ×${st.might.toFixed(2)} · ⏳ Recarga: ×${st.cd.toFixed(2)}<br>
     🔭 Área: ×${st.area.toFixed(2)} · 👢 Velocidad: ${Math.round(st.speed)}<br>
     🛡️ Armadura: ${st.armor} · 🦜 Proyectiles extra: ${st.amount}<br>
-    📜 Experiencia: ×${st.xpMul.toFixed(2)} · 🛟 Revivir: ${G.revives}`;
+    📜 Experiencia: ×${st.xpMul.toFixed(2)} · 🛟 Revivir: ${G.revives}
+    ${G.runPicks.length ? '<br>✨ Mejoras de la partida: ' + G.runPicks.map(o => `<span style="color:${RAREZAS[o.rar].color}">${MP[o.id].icono}</span>`).join(' ') : ''}`;
   show('pause');
 }
 function resumeGame() { if (state !== 'pause') return; hide('pause'); state = 'play'; last = performance.now(); }
@@ -864,8 +1202,14 @@ function endGame(won) {
   const record = !best || G.bounty > best.bounty;
   if (record) store.set('mdr_best', { bounty: G.bounty, name: G.ch.name });
   const base = G.kills * PROG.berriesPorDerribo + G.t * PROG.berriesPorSegundo + G.bosses * PROG.berriesPorJefe + (won ? PROG.berriesPorVictoria : 0);
-  G.gold = Math.floor(base * (1 + pm('codicia')));
-  SAVE.berries += G.gold; SAVE.partidas++; if (won) SAVE.victorias++; saveGame();
+  G.gold = Math.floor(base * (1 + pm('codicia') + ib('berries') + rs('berries')));
+  SAVE.berries += G.gold; SAVE.partidas++; if (won) SAVE.victorias++;
+  const S = SAVE.stats;
+  S.derribos += G.kills; S.mejorTiempo = Math.max(S.mejorTiempo, Math.floor(G.t)); S.mejorNivel = Math.max(S.mejorNivel, G.p.lvl);
+  S.frutas += G.fruits; S.maxArmas = Math.max(S.maxArmas, G.weapons.length); S.mejorRecompensa = Math.max(S.mejorRecompensa, G.bounty);
+  for (const k of G.bossKinds) S.jefes[k] = (S.jefes[k] || 0) + 1;
+  for (const k in G.killsBy) S.porTipo[k] = (S.porTipo[k] || 0) + G.killsBy[k];
+  saveGame();
   const pc = $('#portrait'), c2 = pc.getContext('2d');
   c2.setTransform(1, 0, 0, 1, 0, 0); c2.fillStyle = '#d9c18c'; c2.fillRect(0, 0, 220, 180);
   c2.fillStyle = 'rgba(120,80,30,.15)'; for (let i = 0; i < 40; i++) c2.fillRect(Math.random() * 220, Math.random() * 180, 2, 2);
@@ -874,13 +1218,22 @@ function endGame(won) {
   $('#oBounty').textContent = '💰 ' + fmt(G.bounty);
   $('#oStats').textContent = `Tiempo ${mmss(G.t)} · Nivel ${G.p.lvl} · Derribados ${fmt(G.kills)} · Jefes ${G.bosses}`;
   $('#oMsg').textContent = (won ? '¡Sobreviviste 10 minutos! Eres la leyenda de los mares.' : 'Has caído… pero tu leyenda crece.') + (record ? ' ¡Nueva recompensa récord!' : '');
-  $('#oGold').textContent = `+${fmt(G.gold)} 🪙 Berries · Total: ${fmt(SAVE.berries)}`;
+  const ml_ = misionesListas();
+  $('#oGold').textContent = `+${fmt(G.gold)} 🪙 Berries · Total: ${fmt(SAVE.berries)}` + (ml_ ? ` · 📜 ¡${ml_} misión${ml_ > 1 ? 'es' : ''} por cobrar!` : '');
   setTimeout(() => show('over'), won ? 200 : 500);
 }
 
 $('#bPlay').onclick = () => { initAudio(); buildSelect(); hide('menu'); show('select'); state = 'select'; };
 $('#bBack').onclick = () => { hide('select'); show('menu'); state = 'menu'; refreshBest(); };
 $('#bShop').onclick = () => { initAudio(); openShop('menu'); };
+$('#bMis').onclick = () => { initAudio(); openPanel('missions', 'menu', buildMissions); };
+$('#bMis2').onclick = () => openPanel('missions', 'over', buildMissions);
+$('#bReg').onclick = () => { initAudio(); openPanel('registro', 'menu', buildRegistro); };
+$('#bCofre').onclick = () => { initAudio(); openPanel('cofre', 'menu', buildCofre); };
+$('#bInv').onclick = () => { initAudio(); openPanel('inv', 'menu', buildInventario); };
+$('#bPull1').onclick = () => doPull(1);
+$('#bPull10').onclick = () => doPull(10);
+for (const id of ['missions', 'registro', 'cofre', 'inv']) $('#' + id + ' .back').onclick = () => closePanel(id);
 $('#bShop2').onclick = () => openShop('over');
 $('#bShopBack').onclick = () => closeShop();
 $('#bPause').onclick = () => pauseGame();

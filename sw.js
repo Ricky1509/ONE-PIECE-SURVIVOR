@@ -1,6 +1,6 @@
 // Service worker: guarda el juego en caché para jugar sin conexión.
 // Sube VERSION cada vez que publiques cambios para que los móviles se actualicen.
-const VERSION = 'mdr-v1';
+const VERSION = 'mdr-v2';
 const ARCHIVOS = [
   './', 'index.html', 'manifest.webmanifest',
   'js/config.js', 'js/dibujo.js', 'js/juego.js',
@@ -8,6 +8,7 @@ const ARCHIVOS = [
   'sprites/coral.png', 'sprites/bram.png', 'sprites/lumi.png', 'sprites/barba.png',
   'sprites/soldado.png', 'sprites/cangrejo.png', 'sprites/tiburon.png', 'sprites/capitan.png',
   'sprites/comodoro.png', 'sprites/kraken.png', 'sprites/almirante.png',
+  'sprites/bruno.png', 'sprites/nieves.png', 'sprites/marea.png', 'sprites/kai.png',
 ];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => Promise.all(ARCHIVOS.map(f => c.add(f).catch(() => {})))).then(() => self.skipWaiting()));

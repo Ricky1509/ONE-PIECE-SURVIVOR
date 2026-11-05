@@ -22,6 +22,10 @@
   #topbtns button{width:40px;height:40px;border-radius:10px;border:2px solid rgba(246,201,69,.6);background:rgba(27,20,16,.65);color:#fff;font-size:18px;cursor:pointer}
   .ov{position:fixed;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(5,18,32,.72);z-index:10;padding:16px;overflow:auto}
   .ov.show{display:flex}
+  /* centrado que permite hacer scroll cuando el contenido es más alto que la pantalla */
+  .ov{justify-content:flex-start}
+  .ov>:first-child{margin-top:auto}
+  .ov>:last-child{margin-bottom:auto}
   .panel{background:linear-gradient(180deg,#4a2e1a,#2e1b0f);border:3px solid var(--gold);border-radius:18px;padding:22px 24px;max-width:460px;width:100%;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.5)}
   .panel.wide{max-width:900px}
   h1,h2{font-family:'Pirata One',serif;font-weight:400;margin:0 0 6px;color:var(--gold);text-shadow:0 3px 0 #000}
@@ -68,7 +72,57 @@
   #upg{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
   #upg .card .ic{font-size:32px}
   #upg .card .nm{font-size:20px}
+  h3{font-family:'Pirata One',serif;font-weight:400;color:var(--gold);font-size:24px;margin:16px 0 6px;text-shadow:0 2px 0 #000}
+  .menu-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 4px}
+  .mbtn{position:relative;background:rgba(0,0,0,.3);border:2px solid var(--gold);border-radius:12px;color:#fff;font-size:26px;padding:8px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+  .mbtn span{font-family:'Pirata One',serif;font-size:19px;color:#ffe08a}
+  .mbtn:active{transform:translateY(2px)}
+  .badge{position:absolute;top:-8px;right:-8px;background:#e74c3c;color:#fff;border-radius:12px;padding:2px 8px;font:900 13px Nunito,sans-serif;display:none;border:2px solid #000}
+  .badge.on{display:block}
+  #misList{text-align:left;max-width:640px;margin:0 auto}
+  .mis{display:flex;gap:10px;align-items:center;background:linear-gradient(180deg,#f7e8bd,#e2c98a);color:var(--ink);border:2px solid #000;border-radius:12px;padding:10px 12px;margin:8px 0}
+  .mis.ready{box-shadow:0 0 0 3px #f6c945,0 0 18px #f6c945}
+  .mis.claimed{opacity:.55}
+  .mis .mi{font-size:28px}
+  .mis .mb{flex:1;min-width:0}
+  .mis .mn{font-family:'Pirata One',serif;font-size:20px}
+  .mis .md{font-size:13px}
+  .mis .bar{height:8px;background:rgba(0,0,0,.18);border-radius:4px;overflow:hidden;margin-top:5px}
+  .mis .bar i{display:block;height:100%;background:linear-gradient(90deg,#2a9d3f,#7bd389)}
+  .mis .mp{font-size:11px;font-weight:900;opacity:.7;margin-top:2px}
+  .claim{font:900 14px Nunito,sans-serif;padding:8px 10px;border-radius:10px;border:2px solid #000;background:linear-gradient(180deg,#ffd95e,#e0a516);cursor:pointer;white-space:nowrap}
+  .claim:disabled{background:#cbb98f;opacity:.7;cursor:default}
+  .regstats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+  .regstats .st{background:rgba(0,0,0,.28);border-radius:10px;padding:8px;display:flex;flex-direction:column;align-items:center}
+  .regstats .st span{font-size:22px}.regstats .st b{font-size:18px;color:#ffe08a}.regstats .st small{opacity:.75;font-size:12px}
+  .bestiario{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px}
+  .beast{background:linear-gradient(180deg,#f7e8bd,#e2c98a);color:var(--ink);border:2px solid #000;border-radius:10px;padding:6px;display:flex;flex-direction:column;align-items:center}
+  .beast.unknown canvas{filter:brightness(0) opacity(.55)}
+  .beast .bn{font-family:'Pirata One',serif;font-size:15px;text-align:center}.beast .bc{font-size:11px;font-weight:900;opacity:.7}
+  .frutas{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;text-align:left}
+  .fruit-row{display:flex;gap:8px;align-items:center;background:rgba(0,0,0,.28);border-radius:10px;padding:6px 10px}
+  .rates{font-size:13px;opacity:.9;margin:6px 0;line-height:1.6}
+  .loots{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+  .card.loot{border-width:4px;cursor:pointer}
+  .card.loot .ic{font-size:34px}
+  .card.loot .nm{font-size:19px}
+  .card.loot .rz{font-weight:900;font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+  .card.loot .tag{margin-top:6px;font-weight:900;font-size:13px;color:#2a6b1f}
+  .card.loot.unknown{opacity:.5;cursor:default}
+  .card.loot.equipped{box-shadow:0 4px 0 #000,0 0 0 3px #2ecc71}
+  #pullRes .card.loot{animation:pop .45s both}
+  @keyframes pop{0%{transform:scale(.3) rotateY(90deg);opacity:0}70%{transform:scale(1.08) rotateY(0)}100%{transform:scale(1);opacity:1}}
+  .card.rar-legendario{background:linear-gradient(180deg,#fff3c4,#f5c45e);box-shadow:0 4px 0 #000,0 0 18px #f39c12}
+  .card.rar-epico{background:linear-gradient(180deg,#f1e4fb,#d7b8ef)}
+  .card.rar-raro{background:linear-gradient(180deg,#e3f1fb,#b9d9f2)}
+  .slots{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  .slot{width:110px;min-height:92px;border:3px dashed rgba(255,255,255,.4);border-radius:12px;background:rgba(0,0,0,.25);color:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:6px}
+  .slot .si{font-size:30px}.slot small{font-size:12px;font-weight:700}
+  .slot:not(:disabled){border-style:solid}
   @media (max-width:520px){
+    .loots{grid-template-columns:1fr 1fr}
+    .regstats{grid-template-columns:repeat(3,1fr)}
+    .mbtn span{font-size:16px}
     #upg{grid-template-columns:1fr 1fr}
     #upg .card{padding:8px 6px 10px}
     #upg .card .nm{font-size:17px}
@@ -93,7 +147,13 @@
   <h1>Mar de Recompensas</h1>
   <p class="sub">Tu tripulación ha naufragado en la Isla Calavera. La Armada y los monstruos del mar vienen a por ti. <b>Aguanta 10 minutos</b> y tu recompensa será legendaria.</p>
   <button id="bPlay" class="big">Zarpar</button>
-  <button id="bShop" class="big alt">⚓ Astillero</button>
+  <div class="menu-grid">
+    <button id="bShop" class="mbtn">⚓<span>Astillero</span></button>
+    <button id="bCofre" class="mbtn">🎁<span>Cofre</span></button>
+    <button id="bInv" class="mbtn">🎒<span>Inventario</span></button>
+    <button id="bMis" class="mbtn">📜<span>Misiones</span><b id="misBadge" class="badge"></b></button>
+    <button id="bReg" class="mbtn">📖<span>Registro</span></button>
+  </div>
   <div id="gold"></div>
   <div id="best"></div>
   <div class="hint">Mover: WASD / flechas, o arrastra el dedo en pantalla<br>Los ataques son automáticos · P / Esc = pausa</div>
@@ -113,6 +173,45 @@
   <div id="upg" class="cards"></div>
   <button id="bShopBack" class="big">Listo</button><br>
   <button id="bRefund" class="ghost">Reembolsar mejoras</button>
+</div></div>
+
+<div id="missions" class="ov"><div class="panel wide">
+  <h2>Misiones</h2>
+  <div id="misGold" class="goldline"></div>
+  <div id="misCount" class="sub" style="margin:4px 0"></div>
+  <div id="misList"></div>
+  <button class="big back">Volver</button>
+</div></div>
+
+<div id="registro" class="ov"><div class="panel wide">
+  <h2>Registro</h2>
+  <div id="regStats" class="regstats"></div>
+  <h3>Bestiario</h3>
+  <div id="bestiario" class="bestiario"></div>
+  <h3>Frutas de poder</h3>
+  <div id="frutasInfo" class="frutas"></div>
+  <button class="big back">Volver</button>
+</div></div>
+
+<div id="cofre" class="ov"><div class="panel wide">
+  <h2>Cofre del Tesoro</h2>
+  <div class="sub" style="margin:0">Gasta Berries para conseguir tesoros permanentes</div>
+  <div id="cofGold" class="goldline"></div>
+  <div class="row" style="margin:10px 0"><button id="bPull1" class="big"></button><button id="bPull10" class="big alt"></button></div>
+  <div id="cofRates" class="rates"></div>
+  <div id="pullRes" class="cards loots"></div>
+  <button class="big back">Volver</button>
+</div></div>
+
+<div id="inv" class="ov"><div class="panel wide">
+  <h2>Inventario</h2>
+  <div id="invGold" class="goldline"></div>
+  <h3>Equipado</h3>
+  <div id="invSlots" class="slots"></div>
+  <div id="invTotal" class="rates"></div>
+  <h3>Tus tesoros</h3>
+  <div id="invGrid" class="cards loots"></div>
+  <button class="big back">Volver</button>
 </div></div>
 
 <div id="levelup" class="ov"><div class="panel wide">
@@ -139,7 +238,7 @@
   </div>
   <div id="oMsg"></div>
   <div id="oGold" class="goldline"></div>
-  <div class="row"><button id="bRetry" class="big">Otra vez</button><button id="bShop2" class="big alt">⚓ Astillero</button><button id="bMenu" class="ghost">Menú</button></div>
+  <div class="row"><button id="bRetry" class="big">Otra vez</button><button id="bShop2" class="big alt">⚓ Astillero</button><button id="bMis2" class="big alt">📜 Misiones</button><button id="bMenu" class="ghost">Menú</button></div>
 </div>
 
 <script src="js/config.js"></script>

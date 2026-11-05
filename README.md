@@ -17,13 +17,18 @@ npx serve .
 
 ## Contenido
 
-- **4 piratas:** Capitana Coral (sable), Bram el Certero (pistola), Lumi Brújula (rayos), Barbagris (ancla giratoria)
-- **6 armas** (nivel 1–5): Sable, Pistola, Rayo de Tormenta, Ancla Giratoria, Cañonazo, Fruta Ígnea
+- **8 piratas:** Capitana Coral (sable), Bram el Certero (pistola), Lumi Brújula (rayos), Barbagris (ancla), Bruno el Artillero (cañón), Nieves la Cartógrafa (hielo), Marea la Arponera (arpón) y Kai el Tamborilero (tambor). Los 6 últimos se desbloquean con Berries
+- **10 armas** (nivel 1–5): Sable, Pistola, Rayo de Tormenta, Ancla Giratoria, Cañonazo, Fruta Ígnea, Fruta Glacial, Arpón, Tambor de Guerra y Fruta Vendaval
+- **Mejoras con rareza** al subir de nivel (Común, Raro, Épico, Legendario): experiencia, daño, vida, velocidad, recarga, área, recogida, armadura, regeneración y Berries; se acumulan durante la partida
+- **Frutas de poder** que caen de los enemigos (más a menudo de los capitanes): Dorada (doble experiencia), Furia (+50% daño), Brisa (+40% velocidad) y Coral (+5 armadura), con efecto temporal
 - **8 objetos pasivos:** ron, botas, brújula, pólvora, reloj de arena, catalejo, loro, coraza
 - **Enemigos:** soldados de la Armada, cangrejos, hombres-tiburón, capitanes y emboscadas cada 75 s
 - **Jefes:** Comodoro de Hierro (3:00), Rey Kraken (6:00), Almirante Tormenta (9:00)
 - **Recompensa:** sube con cada derrota; al final se muestra un cartel de "SE BUSCA" y se guarda el récord en el navegador
 - **Astillero (progreso permanente):** cada partida da Berries para comprar mejoras permanentes (vida, daño, recarga, velocidad, área, imán, armadura, regeneración, experiencia, más Berries y un bote salvavidas para revivir) y desbloquear piratas. Las mejoras se pueden reembolsar
+- **Cofre del Tesoro (gacha con Berries, sin dinero real) e Inventario:** 17 tesoros con rareza; los repetidos suben de nivel (hasta 5) y se equipan hasta 3 para tener bonus en todas las partidas. Legendario garantizado como máximo cada 50 tiradas
+- **Misiones:** 22 objetivos (derrotas, tiempo, jefes, nivel, frutas, piratas, mejoras, tesoros...) que dan Berries al cobrarlas
+- **Registro:** estadísticas, bestiario de enemigos descubiertos y guía de frutas
 - **App instalable (PWA):** desde el móvil, "Añadir a pantalla de inicio"; funciona sin conexión
 
 ## Estructura del proyecto
@@ -80,6 +85,8 @@ node tools/generar-sprites.js
 Abre `index.html` con doble clic, o sirve la carpeta con `npx serve .`.
 
 ## Progreso entre partidas
+
+Todo se configura en `js/config.js`: `misiones`, `frutas`, `mejorasPartida` (+ `rarezasPartida`), `cofre` y `tesoros`.
 
 En `js/config.js`, el bloque `progreso` define cuántos Berries se ganan (por derribo, por segundo, por jefe y por victoria) y `mejoras` define cada mejora del Astillero: `valor` por nivel, `max` niveles y `precio` inicial (cada nivel cuesta `crecimientoPrecio` veces más).
 
