@@ -26,13 +26,13 @@
 // =====================================================================
 
 window.MDR_CONFIG = {
-  titulo: 'Mar de Recompensas',
+  titulo: 'Faro de Tormentas',
   duracionMinutos: 10,
 
   // ---------------------------------------------------------------
   //  ISLAS (mapas). tema: playa | jungla | desierto | nieve | volcan | fantasma | tormenta | cristal | gruta
   //  dificultad: multiplica la vida de los enemigos (y la mitad del exceso al daño)
-  //  berries: multiplica los Berries ganados
+  //  berries: multiplica los Doblones de Faro ganados
   //  desbloqueo: { isla, minutos } → aguantar esos minutos en esa isla
   //  tormenta: true → cada cierto tiempo estalla la Gran Tormenta (viento, lluvia, rayos;
   //            la Resonancia de las órdenes se recarga el triple)
@@ -168,7 +168,7 @@ window.MDR_CONFIG = {
       nombre: 'Capitana Coral',
       descripcion: 'Espadachina temeraria. +20% de vida.',
       arma: 'sable',
-      precio: 0, // Berries para desbloquearlo (0 = disponible desde el inicio)
+      precio: 0, // Doblones de Faro para desbloquearlo (0 = disponible desde el inicio)
       bonus: { vida: 1.2 },
       sprite: { src: 'sprites/coral.png', frames: 4, fps: 10, alto: 77, anclaY: 0.62 },
       dibujo: { color: '#b3261e', camisa: '#f5ecd7', piel: '#f3c89a', pelo: '#3b1f4a', peinado: 'largo', sombrero: 'tricornio', colorSombrero: '#22191a', pluma: '#e74c3c', abrigo: true, panuelo: '#f6c945' },
@@ -277,7 +277,7 @@ window.MDR_CONFIG = {
 
   // ---------------------------------------------------------------
   //  PROGRESO ENTRE PARTIDAS (Astillero)
-  //  Al terminar cada partida ganas Berries:
+  //  Al terminar cada partida ganas Doblones de Faro:
   //    derribos × berriesPorDerribo + segundos × berriesPorSegundo
   //    + jefes × berriesPorJefe + (victoria ? berriesPorVictoria : 0)
   //  Cada mejora cuesta `precio` × crecimientoPrecio ^ nivel actual.
@@ -300,7 +300,7 @@ window.MDR_CONFIG = {
     armadura:    { nombre: 'Planchas de Hierro', icono: '🛡️', descripcion: '+1 armadura',            valor: 1,    max: 3, precio: 250 },
     regen:       { nombre: 'Cocinero de a Bordo', icono: '🍲', descripcion: '+0.2 vida por segundo',  valor: 0.2,  max: 4, precio: 120 },
     experiencia: { nombre: 'Cuaderno de Bitácora', icono: '📜', descripcion: '+8% experiencia',       valor: 0.08, max: 4, precio: 150 },
-    codicia:     { nombre: 'Cofre sin Fondo',  icono: '🪙', descripcion: '+10% Berries al terminar', valor: 0.10, max: 5, precio: 100 },
+    codicia:     { nombre: 'Cofre sin Fondo',  icono: '🪙', descripcion: '+10% Doblones de Faro al terminar', valor: 0.10, max: 5, precio: 100 },
     revivir:     { nombre: 'Bote Salvavidas',  icono: '🛟', descripcion: 'Revives 1 vez por partida con 50% de vida', valor: 1, max: 1, precio: 1500 },
   },
 
@@ -318,7 +318,7 @@ window.MDR_CONFIG = {
     coral:  { nombre: 'Fruta Coral',  descripcion: '+5 de armadura',       efecto: 'armadura',    valor: 5,   duracion: 15, color: '#ff8fab' },
     sombra:   { nombre: 'Fruta Sombra',    descripcion: 'Invisible: los enemigos no te encuentran', efecto: 'invisible', valor: 1,   duracion: 6,  color: '#5b4b8a' },
     iman:     { nombre: 'Fruta Imán',      descripcion: 'Atraes las monedas desde muy lejos',      efecto: 'iman',      valor: 5,   duracion: 12, color: '#c0392b' },
-    fortuna:  { nombre: 'Fruta Fortuna',   descripcion: 'Cada derrota cuenta doble para los Berries', efecto: 'codicia', valor: 2,   duracion: 20, color: '#e8b923' },
+    fortuna:  { nombre: 'Fruta Fortuna',   descripcion: 'Cada derrota cuenta doble para los Doblones de Faro', efecto: 'codicia', valor: 2,   duracion: 20, color: '#e8b923' },
     gigante:  { nombre: 'Fruta Gigante',   descripcion: '+50% de área de ataque',                  efecto: 'area',      valor: 1.5, duracion: 15, color: '#8e5a2b' },
     chispa:   { nombre: 'Fruta Chispa',    descripcion: 'Recargas un 40% más rápido',              efecto: 'recarga',   valor: 0.6, duracion: 12, color: '#f9ca24' },
     sanadora: { nombre: 'Fruta Sanadora',  descripcion: 'Cura un 40% al instante y +5 vida/s',     efecto: 'curacion',  valor: 5,   duracion: 10, color: '#2ecc71' },
@@ -326,7 +326,7 @@ window.MDR_CONFIG = {
   },
 
   // ---------------------------------------------------------------
-  //  MISIONES (recompensa en Berries; se cobran en el menú Misiones)
+  //  MISIONES (recompensa en Doblones de Faro; se cobran en el menú Misiones)
   //  tipo: derribos | tiempo (segundos) | victorias | jefe:<id> | nivel
   //        | frutas | piratas | mejoras | armas | recompensa | tiradas | tesoros | islas | rango | ordenes
   // ---------------------------------------------------------------
@@ -381,9 +381,9 @@ window.MDR_CONFIG = {
   },
 
   // ---------------------------------------------------------------
-  //  COFRE DEL TESORO (gacha con Berries) E INVENTARIO
+  //  COFRE DEL TESORO (gacha con Doblones de Faro) E INVENTARIO
   //  Cada tirada da un tesoro. Si ya lo tienes, sube de nivel (máx. nivelMax,
-  //  cada nivel +25% de su efecto); si está al máximo, devuelve Berries.
+  //  cada nivel +25% de su efecto); si está al máximo, devuelve Doblones de Faro.
   //  Los tesoros equipados (hasta `ranuras`) dan sus bonus en todas las partidas.
   //  stats: dano, vida, velocidad, area, iman, experiencia, berries (fracción: 0.05 = 5%),
   //         recarga (fracción que se reduce), armadura y regen (valor fijo)

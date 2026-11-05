@@ -1,4 +1,4 @@
-# Mar de Recompensas
+# Faro de Tormentas
 
 Juego de supervivencia por oleadas (estilo *survivors*) con temática pirata, hecho en HTML5 Canvas y JavaScript, sin dependencias.
 
@@ -17,20 +17,20 @@ npx serve .
 
 ## Contenido
 
-- **9 islas** con temática propia (playa, jungla, desierto, nieve, volcán, cementerio de barcos, tormenta, cristal y gruta): suelo, decoración, clima y tono de color distintos, más dificultad y más Berries en cada una. Se desbloquean aguantando 5 minutos en la anterior y se eligen en el centro del menú principal
+- **9 islas** con temática propia (playa, jungla, desierto, nieve, volcán, cementerio de barcos, tormenta, cristal y gruta): suelo, decoración, clima y tono de color distintos, más dificultad y más Doblones de Faro en cada una. Se desbloquean aguantando 5 minutos en la anterior y se eligen en el centro del menú principal
 - **Órdenes del Faro:** 10 órdenes (Vendaval, Marea, Coral, Bruma, Ascuas, Abismo, Trueno, Ancla, Escarcha y Estrellas), cada una con 2 poderes (Q / E) que gastan Resonancia, un compañero espiritual que dispara contigo, mejoras propias al subir de nivel y una mejora especial. Jugar con una orden suma puntos; al alcanzar cada rango (Grumete → Marinero → Oficial → Capitán → Leyenda) se pronuncia un juramento con una animación a pantalla completa
 - **Gran Tormenta:** en las islas de tormenta (Ojo de la Tormenta, Cumbres de Cristal) estalla cada cierto tiempo: viento, lluvia y rayos con aviso; la Resonancia se recarga el triple
-- **8 piratas:** Capitana Coral (sable), Bram el Certero (pistola), Lumi Brújula (rayos), Barbagris (ancla), Bruno el Artillero (cañón), Nieves la Cartógrafa (hielo), Marea la Arponera (arpón) y Kai el Tamborilero (tambor). Los 6 últimos se desbloquean con Berries
+- **8 piratas:** Capitana Coral (sable), Bram el Certero (pistola), Lumi Brújula (rayos), Barbagris (ancla), Bruno el Artillero (cañón), Nieves la Cartógrafa (hielo), Marea la Arponera (arpón) y Kai el Tamborilero (tambor). Los 6 últimos se desbloquean con Doblones de Faro
 - **14 armas** (nivel 1–5): Sable, Pistola, Rayo de Tormenta, Ancla Giratoria, Cañonazo, Arpón, Tambor de Guerra y 7 frutas-arma (Ígnea, Glacial, Vendaval, Centella, Arena, Espina y Burbuja)
-- **Mejoras con rareza** al subir de nivel (Común, Raro, Épico, Legendario): experiencia, daño, vida, velocidad, recarga, área, recogida, armadura, regeneración y Berries; se acumulan durante la partida
-- **11 frutas de poder** con efecto temporal que caen de los enemigos: Dorada, Furia, Brisa, Coral, Sombra (invisible), Imán, Fortuna (Berries dobles), Gigante (área), Chispa (recarga), Sanadora y la rara Arcoíris
+- **Mejoras con rareza** al subir de nivel (Común, Raro, Épico, Legendario): experiencia, daño, vida, velocidad, recarga, área, recogida, armadura, regeneración y Doblones de Faro; se acumulan durante la partida
+- **11 frutas de poder** con efecto temporal que caen de los enemigos: Dorada, Furia, Brisa, Coral, Sombra (invisible), Imán, Fortuna (Doblones de Faro dobles), Gigante (área), Chispa (recarga), Sanadora y la rara Arcoíris
 - **8 objetos pasivos:** ron, botas, brújula, pólvora, reloj de arena, catalejo, loro, coraza
 - **Enemigos:** soldados de la Armada, cangrejos, hombres-tiburón, capitanes y emboscadas cada 75 s
 - **Jefes:** Comodoro de Hierro (3:00), Rey Kraken (6:00), Almirante Tormenta (9:00)
 - **Recompensa:** sube con cada derrota; al final se muestra un cartel de "SE BUSCA" y se guarda el récord en el navegador
-- **Astillero (progreso permanente):** cada partida da Berries para comprar mejoras permanentes (vida, daño, recarga, velocidad, área, imán, armadura, regeneración, experiencia, más Berries y un bote salvavidas para revivir) y desbloquear piratas. Las mejoras se pueden reembolsar
-- **Cofre del Tesoro (gacha con Berries, sin dinero real) e Inventario:** 17 tesoros con rareza; los repetidos suben de nivel (hasta 5) y se equipan hasta 3 para tener bonus en todas las partidas. Legendario garantizado como máximo cada 50 tiradas
-- **Misiones:** 22 objetivos (derrotas, tiempo, jefes, nivel, frutas, piratas, mejoras, tesoros...) que dan Berries al cobrarlas
+- **Astillero (progreso permanente):** cada partida da Doblones de Faro para comprar mejoras permanentes (vida, daño, recarga, velocidad, área, imán, armadura, regeneración, experiencia, más Doblones de Faro y un bote salvavidas para revivir) y desbloquear piratas. Las mejoras se pueden reembolsar
+- **Cofre del Tesoro (gacha con Doblones de Faro, sin dinero real) e Inventario:** 17 tesoros con rareza; los repetidos suben de nivel (hasta 5) y se equipan hasta 3 para tener bonus en todas las partidas. Legendario garantizado como máximo cada 50 tiradas
+- **Misiones:** 22 objetivos (derrotas, tiempo, jefes, nivel, frutas, piratas, mejoras, tesoros...) que dan Doblones de Faro al cobrarlas
 - **Registro:** estadísticas, bestiario de enemigos descubiertos y guía de frutas
 - **App instalable (PWA):** desde el móvil, "Añadir a pantalla de inicio"; funciona sin conexión
 
@@ -74,7 +74,7 @@ sprite: { src: 'sprites/mi-pirata.png', frames: 4, fps: 10, alto: 77, anclaY: 0.
 
 Si una imagen no existe o no carga, el juego usa el dibujo hecho con código y avisa en la consola del navegador. Para volver al dibujo, pon `sprite: null`.
 
-También puedes cambiar `nombre`, `descripcion`, `arma`, `precio` (Berries para desbloquear), `bonus` y estadísticas de enemigos (`vida`, `velocidad`, `dano`...), los nombres e iconos de armas y objetos, y en qué minuto salen los jefes.
+También puedes cambiar `nombre`, `descripcion`, `arma`, `precio` (Doblones de Faro para desbloquear), `bonus` y estadísticas de enemigos (`vida`, `velocidad`, `dano`...), los nombres e iconos de armas y objetos, y en qué minuto salen los jefes.
 
 ### Volver a generar los sprites de ejemplo
 
@@ -92,7 +92,7 @@ Abre `index.html` con doble clic, o sirve la carpeta con `npx serve .`.
 
 Todo se configura en `js/config.js`: `misiones`, `frutas`, `mejorasPartida` (+ `rarezasPartida`), `cofre` y `tesoros`.
 
-En `js/config.js`, el bloque `progreso` define cuántos Berries se ganan (por derribo, por segundo, por jefe y por victoria) y `mejoras` define cada mejora del Astillero: `valor` por nivel, `max` niveles y `precio` inicial (cada nivel cuesta `crecimientoPrecio` veces más).
+En `js/config.js`, el bloque `progreso` define cuántos Doblones de Faro se ganan (por derribo, por segundo, por jefe y por victoria) y `mejoras` define cada mejora del Astillero: `valor` por nivel, `max` niveles y `precio` inicial (cada nivel cuesta `crecimientoPrecio` veces más).
 
 El progreso se guarda en el navegador (`localStorage`). Si se juega desde otro navegador o dispositivo, empieza de cero.
 
@@ -108,7 +108,7 @@ Ver [docs/TIENDAS.md](docs/TIENDAS.md).
 
 ## Versión para PC (Windows)
 
-Descarga directa: **[MarDeRecompensas.exe](https://github.com/Ricky1509/ONE-PIECE-SURVIVOR/releases/download/escritorio/MarDeRecompensas.exe)** (se abre directamente, sin instalar) o **[MarDeRecompensas-Windows.zip](https://github.com/Ricky1509/ONE-PIECE-SURVIVOR/releases/download/escritorio/MarDeRecompensas-Windows.zip)** (descomprime y abre `Mar de Recompensas.exe`).
+Descarga directa: **[FaroDeTormentas.exe](https://github.com/Ricky1509/ONE-PIECE-SURVIVOR/releases/download/escritorio/FaroDeTormentas.exe)** (se abre directamente, sin instalar) o **[FaroDeTormentas-Windows.zip](https://github.com/Ricky1509/ONE-PIECE-SURVIVOR/releases/download/escritorio/FaroDeTormentas-Windows.zip)** (descomprime y abre `Faro de Tormentas.exe`).
 
 - Windows puede mostrar el aviso "Windows protegió tu PC" porque el programa no está firmado: pulsa *Más información → Ejecutar de todas formas*.
 - **F11** activa la pantalla completa. El progreso se guarda en el propio PC.
@@ -120,5 +120,5 @@ Para compilarlo a mano (necesita Node.js):
 cd desktop
 npm install
 npm start      # probar en una ventana
-npm run dist   # crear dist/MarDeRecompensas.exe (en Windows)
+npm run dist   # crear dist/FaroDeTormentas.exe (en Windows)
 ```

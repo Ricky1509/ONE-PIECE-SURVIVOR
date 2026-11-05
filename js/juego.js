@@ -114,7 +114,7 @@ const MEJORAS = CFG.mejoras || {};
 const PROG = Object.assign({ berriesPorDerribo: 0.5, berriesPorSegundo: 0.35, berriesPorJefe: 250, berriesPorVictoria: 1000, crecimientoPrecio: 1.6 }, CFG.progreso || {});
 const SAVE_KEY = 'mdr_save';
 let SAVE = Object.assign({ berries: 0, mejoras: {}, desbloqueados: [], partidas: 0, victorias: 0 }, store.get(SAVE_KEY, {}));
-// Migración: partidas guardadas antes de renombrar la moneda a Berries
+// Migración: partidas guardadas antes de renombrar la moneda a Doblones de Faro
 if (SAVE.doblones) { SAVE.berries = (SAVE.berries || 0) + SAVE.doblones; }
 delete SAVE.doblones;
 function saveGame() { store.set(SAVE_KEY, SAVE); }
@@ -1659,7 +1659,7 @@ function renderHome() {
   $('#islaNombre').textContent = is.nombre;
   $('#islaDesc').textContent = is.descripcion || '';
   const n = Math.max(1, Math.min(5, Math.round(((is.dificultad || 1) - 1) / 0.5) + 1));
-  $('#islaInfo').innerHTML = `Dificultad <span class="stars">${'★'.repeat(n)}${'☆'.repeat(5 - n)}</span> · Berries ×${is.berries || 1}` + (SAVE.islas[is.id] ? ` · Mejor: ${mmss(SAVE.islas[is.id])}` : '');
+  $('#islaInfo').innerHTML = `Dificultad <span class="stars">${'★'.repeat(n)}${'☆'.repeat(5 - n)}</span> · 🪙 ×${is.berries || 1}` + (SAVE.islas[is.id] ? ` · Mejor: ${mmss(SAVE.islas[is.id])}` : '');
   const lock = $('#islaLock');
   if (un) lock.classList.remove('on');
   else { const req = ISLAS.find(i => i.id === is.desbloqueo.isla); lock.innerHTML = `<b>🔒</b>Aguanta ${is.desbloqueo.minutos}:00 en ${req ? req.nombre : is.desbloqueo.isla} para desbloquearla`; lock.classList.add('on'); }
@@ -1673,7 +1673,7 @@ function refreshBest() {
   $('#homeOrden').innerHTML = o ? `🛡️ <b style="color:${o.color}">${o.nombre}</b> · ${OS.rangos[rangoDe(ordenPts(o.id))]}` : '';
   const b = store.get('mdr_best', null);
   $('#best').textContent = b ? `Mayor recompensa: 💰 ${fmt(b.bounty)} (${b.name})` : '';
-  $('#gold').textContent = `🪙 ${fmt(SAVE.berries)} Berries` + (SAVE.partidas ? ` · ${SAVE.partidas} partidas` : '');
+  $('#gold').textContent = `🪙 ${fmt(SAVE.berries)} Doblones de Faro` + (SAVE.partidas ? ` · ${SAVE.partidas} partidas` : '');
   const nb = misionesListas(), bd = $('#misBadge'); bd.textContent = nb; bd.classList.toggle('on', nb > 0);
 }
 function buildSelect() {
@@ -1700,7 +1700,7 @@ function buildSelect() {
 }
 let shopFrom = 'menu';
 function buildShop() {
-  $('#shopGold').textContent = `🪙 ${fmt(SAVE.berries)} Berries`;
+  $('#shopGold').textContent = `🪙 ${fmt(SAVE.berries)} Doblones de Faro`;
   const box = $('#upg'); box.innerHTML = '';
   for (const k in MEJORAS) {
     const m = MEJORAS[k], l = ml(k), maxed = l >= m.max, cost = maxed ? 0 : upgradeCost(k), can = !maxed && SAVE.berries >= cost;
@@ -1725,7 +1725,7 @@ function closeShop() { hide('shop'); if (shopFrom === 'over') { show('over'); st
 let panelFrom = 'menu';
 function openPanel(id, from, build) { panelFrom = from; hide(from); build(); show(id); state = id; }
 function closePanel(id) { hide(id); if (panelFrom === 'over') { show('over'); state = 'over'; } else { refreshBest(); show('menu'); state = 'menu'; } }
-const goldLine = () => `🪙 ${fmt(SAVE.berries)} Berries`;
+const goldLine = () => `🪙 ${fmt(SAVE.berries)} Doblones de Faro`;
 
 function buildMissions() {
   $('#misGold').textContent = goldLine();
@@ -1777,14 +1777,14 @@ function buildRegistro() {
 // --- Tesoros: textos de bonus ---
 const STAT_TXT = { dano: v => `+${Math.round(v * 100)}% daño`, vida: v => `+${Math.round(v * 100)}% vida`, velocidad: v => `+${Math.round(v * 100)}% velocidad`,
   area: v => `+${Math.round(v * 100)}% área`, iman: v => `+${Math.round(v * 100)}% recogida`, experiencia: v => `+${Math.round(v * 100)}% experiencia`,
-  berries: v => `+${Math.round(v * 100)}% Berries`, recarga: v => `-${Math.round(v * 100)}% recarga`, armadura: v => `+${+v.toFixed(1)} armadura`, regen: v => `+${+v.toFixed(2)} vida/s` };
+  berries: v => `+${Math.round(v * 100)}% Doblones de Faro`, recarga: v => `-${Math.round(v * 100)}% recarga`, armadura: v => `+${+v.toFixed(1)} armadura`, regen: v => `+${+v.toFixed(2)} vida/s` };
 function itemText(id, lvl) { const it = TESOROS[id], m = 1 + 0.25 * ((lvl || 1) - 1); return Object.entries(it.stats || {}).map(([k, v]) => (STAT_TXT[k] || (x => k + ' ' + x))(v * m)).join(' · '); }
 function itemCard(id, extra = '') {
   const it = TESOROS[id], rz = RAREZAS[it.rareza] || RAREZAS.comun, lvl = SAVE.inv[id] || 0;
   return `<div class="ic">${it.icono}</div><div class="nm">${it.nombre}</div><div class="rz" style="color:${rz.color}">${rz.nombre}${lvl ? ' · Nv ' + lvl : ''}</div><div class="ds">${itemText(id, lvl || 1)}</div>${extra}`;
 }
 
-// --- Cofre del Tesoro (gacha con Berries) ---
+// --- Cofre del Tesoro (gacha con Doblones de Faro) ---
 function rollRarity(minRank) {
   const P = COFRE.probabilidades, pool = RAR_ORDER.filter((r, i) => i >= minRank && P[r] > 0 && Object.values(TESOROS).some(t => t.rareza === r));
   let tot = pool.reduce((a, r) => a + P[r], 0), x = Math.random() * tot;
@@ -1991,7 +1991,7 @@ function endGame(won) {
   saveGame();
   $('#oMsg').textContent = (G.orden && G.rank > G.rank0 ? `📜 ¡Has pronunciado un juramento! Ahora eres ${OS.rangos[G.rank]} de los ${G.orden.nombre}. ` : '') + (nuevas.length ? `🏝️ ¡Nueva isla desbloqueada: ${nuevas.map(i => i.nombre).join(', ')}! ` : '') + (won ? '¡Sobreviviste 10 minutos! Eres la leyenda de los mares.' : 'Has caído… pero tu leyenda crece.') + (record ? ' ¡Nueva recompensa récord!' : '');
   const ml_ = misionesListas();
-  $('#oGold').textContent = `+${fmt(G.gold)} 🪙 Berries · Total: ${fmt(SAVE.berries)}` + (ml_ ? ` · 📜 ¡${ml_} misión${ml_ > 1 ? 'es' : ''} por cobrar!` : '');
+  $('#oGold').textContent = `+${fmt(G.gold)} 🪙 Doblones de Faro · Total: ${fmt(SAVE.berries)}` + (ml_ ? ` · 📜 ¡${ml_} misión${ml_ > 1 ? 'es' : ''} por cobrar!` : '');
   setTimeout(() => show('over'), won ? 200 : 500);
 }
 

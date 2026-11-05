@@ -12,13 +12,13 @@ El juego es HTML5 + JavaScript sin dependencias, así que se puede empaquetar pa
 ## itch.io (gratis, recomendado para empezar)
 
 Cada compilación publica en *Releases → escritorio* dos archivos listos para itch.io:
-`MarDeRecompensas-Web.zip` (se juega en el navegador) y `MarDeRecompensas-Windows.zip` (descarga para PC).
+`FaroDeTormentas-Web.zip` (se juega en el navegador) y `FaroDeTormentas-Windows.zip` (descarga para PC).
 
 1. Crea una cuenta en https://itch.io y entra en **Dashboard → Create new project**.
-2. Rellena **Title** (Mar de Recompensas), **Project URL** y una descripción corta.
+2. Rellena **Title** (Faro de Tormentas), **Project URL** y una descripción corta.
 3. **Kind of project: HTML**.
-4. **Uploads → Upload files**: sube `MarDeRecompensas-Web.zip` y marca **"This file will be played in the browser"**.
-   Sube también `MarDeRecompensas-Windows.zip` y márcalo como **Windows**.
+4. **Uploads → Upload files**: sube `FaroDeTormentas-Web.zip` y marca **"This file will be played in the browser"**.
+   Sube también `FaroDeTormentas-Windows.zip` y márcalo como **Windows**.
 5. **Embed options**: tamaño **1280 × 720**, activa **Mobile friendly** (orientación horizontal o vertical)
    y **Fullscreen button**. Desactiva "Automatically start on page load" si quieres un botón de "Run game".
 6. **Pricing**: *No payments* (gratis) o *Donations*.
@@ -35,7 +35,7 @@ del repositorio).
 ```bash
 npm init -y
 npm i @capacitor/core @capacitor/cli @capacitor/android @capacitor/ios
-npx cap init "Mar de Recompensas" com.tunombre.mardesrecompensas --web-dir www
+npx cap init "Faro de Tormentas" com.tunombre.farodetormentas --web-dir www
 # copiar el juego a www/ (index.html, js/, sprites/, icons/, manifest.webmanifest)
 npx cap add android
 npx cap add ios          # solo en Mac
@@ -63,5 +63,5 @@ Ajustes recomendados antes de publicar:
 ## 3. Opciones para monetizar (opcional)
 
 - Pago único en la tienda.
-- Anuncios recompensados (por ejemplo, revivir o duplicar Berries) con AdMob (`@capacitor-community/admob`).
+- Anuncios recompensados (por ejemplo, revivir o duplicar Doblones de Faro) con AdMob (`@capacitor-community/admob`).
 - Compras dentro de la app (piratas o aspectos cosméticos).

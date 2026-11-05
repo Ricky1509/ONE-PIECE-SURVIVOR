@@ -32,18 +32,18 @@ jobs:
       - name: Compilar la aplicación (carpeta win-unpacked)
         run: npm run preparar && npx electron-builder --win dir --publish never
       - name: Probar que el juego abre en Windows
-        run: MDR_SMOKE=1 timeout 90 "dist/win-unpacked/Mar de Recompensas.exe"
+        run: MDR_SMOKE=1 timeout 90 "dist/win-unpacked/Faro de Tormentas.exe"
       - name: Empaquetar en .zip
         shell: pwsh
-        run: Compress-Archive -Path "dist/win-unpacked/*" -DestinationPath "dist/MarDeRecompensas-Windows.zip" -Force
+        run: Compress-Archive -Path "dist/win-unpacked/*" -DestinationPath "dist/FaroDeTormentas-Windows.zip" -Force
       - name: Empaquetar versión web para itch.io
         shell: pwsh
         working-directory: .
         run: |
           New-Item -ItemType Directory -Force -Path itch | Out-Null
           Copy-Item -Recurse index.html, manifest.webmanifest, sw.js, js, sprites, icons -Destination itch
-          Compress-Archive -Path "itch/*" -DestinationPath "desktop/dist/MarDeRecompensas-Web.zip" -Force
-      - name: Crear MarDeRecompensas.exe portable (con reintentos)
+          Compress-Archive -Path "itch/*" -DestinationPath "desktop/dist/FaroDeTormentas-Web.zip" -Force
+      - name: Crear FaroDeTormentas.exe portable (con reintentos)
         continue-on-error: true
         run: |
           for i in 1 2 3 4; do
@@ -55,14 +55,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          NOTAS="Mar de Recompensas (commit ${GITHUB_SHA::7}). MarDeRecompensas.exe: Windows, se abre directamente. MarDeRecompensas-Windows.zip: descomprímelo y abre 'Mar de Recompensas.exe'. MarDeRecompensas-Web.zip: versión web lista para subir a itch.io (HTML). Se actualiza sola con cada cambio del juego."
+          NOTAS="Faro de Tormentas (commit ${GITHUB_SHA::7}). FaroDeTormentas.exe: Windows, se abre directamente. FaroDeTormentas-Windows.zip: descomprímelo y abre 'Faro de Tormentas.exe'. FaroDeTormentas-Web.zip: versión web lista para subir a itch.io (HTML). Se actualiza sola con cada cambio del juego."
           # Reintenta ante errores temporales de la API de GitHub (500/502/503)
           intentar() { for i in 1 2 3 4 5; do "$@" && return 0; echo "Fallo temporal ($i). Reintentando en $((i*15)) s..."; sleep $((i*15)); done; return 1; }
           if gh release view escritorio >/dev/null 2>&1; then
             intentar gh release edit escritorio --notes "$NOTAS"
           else
-            intentar gh release create escritorio --title "Mar de Recompensas para Windows" --notes "$NOTAS" --latest
+            intentar gh release create escritorio --title "Faro de Tormentas para Windows" --notes "$NOTAS" --latest
           fi
-          intentar gh release upload escritorio dist/MarDeRecompensas-Windows.zip --clobber
-          intentar gh release upload escritorio dist/MarDeRecompensas-Web.zip --clobber
-          if [ -f dist/MarDeRecompensas.exe ]; then intentar gh release upload escritorio dist/MarDeRecompensas.exe --clobber; fi
+          # Quita los archivos con el nombre antiguo del juego
+          for viejo in MarDeRecompensas.exe MarDeRecompensas-Windows.zip MarDeRecompensas-Web.zip; do gh release delete-asset escritorio "$viejo" -y >/dev/null 2>&1 || true; done
+          intentar gh release upload escritorio dist/FaroDeTormentas-Windows.zip --clobber
+          intentar gh release upload escritorio dist/FaroDeTormentas-Web.zip --clobber
+          if [ -f dist/FaroDeTormentas.exe ]; then intentar gh release upload escritorio dist/FaroDeTormentas.exe --clobber; fi

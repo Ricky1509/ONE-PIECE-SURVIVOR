@@ -1,6 +1,6 @@
 {
-  "name": "mar-de-recompensas",
-  "productName": "Mar de Recompensas",
+  "name": "faro-de-tormentas",
+  "productName": "Faro de Tormentas",
   "version": "1.0.0",
   "description": "Survivors pirata: aguanta 10 minutos contra la Armada y los monstruos del mar.",
   "author": "Ricky1509",
@@ -17,11 +17,11 @@
     "electron-builder": "^26.0.0"
   },
   "build": {
-    "appId": "com.ricky1509.mar-de-recompensas",
-    "productName": "Mar de Recompensas",
+    "appId": "com.ricky1509.faro-de-tormentas",
+    "productName": "Faro de Tormentas",
     "directories": { "output": "dist", "buildResources": "build" },
     "files": ["main.js", "app/**/*"],
     "win": { "target": ["portable"], "icon": "build/icon.png" },
-    "portable": { "artifactName": "MarDeRecompensas.exe" }
+    "portable": { "artifactName": "FaroDeTormentas.exe" }
   }
 }
