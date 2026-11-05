@@ -9,6 +9,27 @@ El juego es HTML5 + JavaScript sin dependencias, así que se puede empaquetar pa
 | PC (Steam / itch.io) | **Electron** o **Tauri** | Steam: 100 USD por juego · itch.io: gratis |
 | Web | GitHub Pages / itch.io (HTML5) | Gratis |
 
+## itch.io (gratis, recomendado para empezar)
+
+Cada compilación publica en *Releases → escritorio* dos archivos listos para itch.io:
+`MarDeRecompensas-Web.zip` (se juega en el navegador) y `MarDeRecompensas-Windows.zip` (descarga para PC).
+
+1. Crea una cuenta en https://itch.io y entra en **Dashboard → Create new project**.
+2. Rellena **Title** (Mar de Recompensas), **Project URL** y una descripción corta.
+3. **Kind of project: HTML**.
+4. **Uploads → Upload files**: sube `MarDeRecompensas-Web.zip` y marca **"This file will be played in the browser"**.
+   Sube también `MarDeRecompensas-Windows.zip` y márcalo como **Windows**.
+5. **Embed options**: tamaño **1280 × 720**, activa **Mobile friendly** (orientación horizontal o vertical)
+   y **Fullscreen button**. Desactiva "Automatically start on page load" si quieres un botón de "Run game".
+6. **Pricing**: *No payments* (gratis) o *Donations*.
+7. Añade capturas (3–5), imagen de portada (630 × 500), género *Action*, etiquetas
+   (survivors, roguelite, pirates, bullet-heaven, pixel…).
+8. **Visibility**: primero *Draft* para probarlo; cuando funcione, *Public*.
+
+Para subir versiones nuevas: descarga de nuevo los `.zip` de *Releases → escritorio* y súbelos
+reemplazando los anteriores (o automatízalo con `butler` y una API key de itch.io guardada como secreto
+del repositorio).
+
 ## 1. Capacitor (Android e iOS con el mismo código)
 
 ```bash
