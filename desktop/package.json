@@ -1,0 +1,27 @@
+{
+  "name": "mar-de-recompensas",
+  "productName": "Mar de Recompensas",
+  "version": "1.0.0",
+  "description": "Survivors pirata: aguanta 10 minutos contra la Armada y los monstruos del mar.",
+  "author": "Ricky1509",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "preparar": "node preparar.js",
+    "start": "npm run preparar && electron .",
+    "dist": "npm run preparar && electron-builder --win portable --publish never"
+  },
+  "devDependencies": {
+    "electron": "^38.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "com.ricky1509.mar-de-recompensas",
+    "productName": "Mar de Recompensas",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["main.js", "app/**/*"],
+    "win": { "target": ["portable"], "icon": "build/icon.png" },
+    "portable": { "artifactName": "MarDeRecompensas.exe" }
+  }
+}

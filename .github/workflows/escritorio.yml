@@ -1,0 +1,47 @@
+name: Compilar versión de escritorio (Windows)
+
+on:
+  push:
+    branches: [main]
+    paths: ['index.html', 'js/**', 'sprites/**', 'icons/**', 'desktop/**', '.github/workflows/escritorio.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: escritorio
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Instalar dependencias
+        run: npm install --no-audit --no-fund
+      - name: Compilar MarDeRecompensas.exe
+        run: npm run dist
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Probar que el juego abre en Windows
+        shell: bash
+        run: MDR_SMOKE=1 timeout 90 "dist/win-unpacked/Mar de Recompensas.exe"
+      - name: Publicar en la página de descargas
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTAS="Versión para Windows de Mar de Recompensas. Descarga MarDeRecompensas.exe y ábrelo: no necesita instalación. Se actualiza automáticamente con cada cambio del juego (commit ${GITHUB_SHA::7})."
+          if gh release view escritorio >/dev/null 2>&1; then
+            gh release edit escritorio --notes "$NOTAS"
+          else
+            gh release create escritorio --title "Mar de Recompensas para Windows" --notes "$NOTAS" --latest
+          fi
+          gh release upload escritorio dist/MarDeRecompensas.exe --clobber
