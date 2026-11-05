@@ -144,6 +144,8 @@
   .isla-dots i.on{background:var(--gold);transform:scale(1.25)}
   .isla-dots i.lock:not(.on){background:#555}
   #bPlay:disabled{filter:grayscale(1);opacity:.6;cursor:not-allowed}
+  .home-top-r{display:flex;gap:8px;align-items:center}
+  .langbtn{background:rgba(0,0,0,.6);border:2px solid var(--gold);border-radius:20px;padding:6px 12px;font-weight:900;color:#fff;cursor:pointer;font-family:Nunito,sans-serif}
   .home-best{color:var(--gold);font-weight:700;font-size:14px;text-shadow:0 2px 0 #000;text-align:center}
   .help{text-align:left;line-height:1.5;font-size:15px}
   @media (max-width:760px){
@@ -212,7 +214,7 @@
 <div id="menu" class="ov show home">
   <div class="home-top">
     <div class="home-title">Faro de Tormentas</div>
-    <div id="gold" class="goldpill"></div>
+    <div class="home-top-r"><div id="gold" class="goldpill"></div><button id="bLang" class="langbtn" aria-label="Idioma">🌐 ES</button></div>
   </div>
   <div class="home-grid">
     <div class="home-side">
@@ -256,7 +258,7 @@
 
 <div id="ayuda" class="ov"><div class="panel">
   <h2>Cómo jugar</h2>
-  <div class="help">
+  <div class="help" data-i18n-html="help">
     <p>🕹️ <b>Mover:</b> WASD / flechas, o arrastra el dedo en la pantalla.</p>
     <p>⚔️ <b>Atacar:</b> automático. Recoge monedas para subir de nivel y elige mejoras.</p>
     <p>🏝️ <b>Islas:</b> aguanta 5 minutos en una isla para desbloquear la siguiente. Cada isla es más difícil y da más Doblones de Faro.</p>
@@ -353,6 +355,8 @@
 </div>
 
 <script src="js/config.js"></script>
+<script src="js/i18n-en.js"></script>
+<script src="js/i18n.js"></script>
 <script src="js/dibujo.js"></script>
 <script src="js/islas.js"></script>
 <script src="js/juego.js"></script>

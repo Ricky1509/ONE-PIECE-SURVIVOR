@@ -1,4 +1,6 @@
-# Faro de Tormentas
+# Faro de Tormentas (Storm Beacon)
+
+🇪🇸 Español · 🇬🇧 English — botón 🌐 en el menú principal para cambiar de idioma.
 
 Juego de supervivencia por oleadas (estilo *survivors*) con temática pirata, hecho en HTML5 Canvas y JavaScript, sin dependencias.
 
@@ -44,6 +46,8 @@ icons/                iconos de la app
 js/config.js          ⚙️ personajes, enemigos, jefes, armas y sprites (editable)
 js/dibujo.js          dibujos hechos con código (se usan si falta un sprite)
 js/islas.js           suelo, decoración, vista previa, clima y tono de cada isla
+js/i18n.js            idiomas: elige es/en, traduce la interfaz y la configuración
+js/i18n-en.js         textos en inglés (interfaz + nombres y descripciones de config.js)
 js/juego.js           lógica del juego
 sprites/              imágenes PNG de personajes y enemigos
 tools/generar-sprites.js  genera los sprites de ejemplo desde js/dibujo.js

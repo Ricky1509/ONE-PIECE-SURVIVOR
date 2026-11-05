@@ -59,9 +59,9 @@ jobs:
           # Reintenta ante errores temporales de la API de GitHub (500/502/503)
           intentar() { for i in 1 2 3 4 5; do "$@" && return 0; echo "Fallo temporal ($i). Reintentando en $((i*15)) s..."; sleep $((i*15)); done; return 1; }
           if gh release view escritorio >/dev/null 2>&1; then
-            intentar gh release edit escritorio --notes "$NOTAS"
+            intentar gh release edit escritorio --title "Faro de Tormentas (Storm Beacon)" --notes "$NOTAS"
           else
-            intentar gh release create escritorio --title "Faro de Tormentas para Windows" --notes "$NOTAS" --latest
+            intentar gh release create escritorio --title "Faro de Tormentas (Storm Beacon)" --notes "$NOTAS" --latest
           fi
           # Quita los archivos con el nombre antiguo del juego
           for viejo in MarDeRecompensas.exe MarDeRecompensas-Windows.zip MarDeRecompensas-Web.zip; do gh release delete-asset escritorio "$viejo" -y >/dev/null 2>&1 || true; done
