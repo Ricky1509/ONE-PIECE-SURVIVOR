@@ -1,9 +1,9 @@
 // Service worker: guarda el juego en caché para jugar sin conexión.
 // Sube VERSION cada vez que publiques cambios para que los móviles se actualicen.
-const VERSION = 'mdr-v7';
+const VERSION = 'mdr-v8';
 const ARCHIVOS = [
   './', 'index.html', 'manifest.webmanifest',
-  'js/config.js', 'js/dibujo.js', 'js/islas.js', 'js/juego.js',
+  'js/config.js', 'js/i18n-en.js', 'js/i18n.js', 'js/dibujo.js', 'js/islas.js', 'js/juego.js',
   'icons/icon-192.png', 'icons/icon-512.png',
   'sprites/coral.png', 'sprites/bram.png', 'sprites/lumi.png', 'sprites/barba.png',
   'sprites/soldado.png', 'sprites/cangrejo.png', 'sprites/tiburon.png', 'sprites/capitan.png',

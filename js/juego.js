@@ -130,7 +130,7 @@ const MISIONES = CFG.misiones || [];
 const TESOROS = CFG.tesoros || {};
 const COFRE = Object.assign({ precio: 250, precio10: 2250, garantiaLegendario: 50, probabilidades: { comun: 60, raro: 28, epico: 10, legendario: 2 },
   reembolso: { comun: 30, raro: 80, epico: 200, legendario: 600 }, nivelMax: 5, ranuras: 3 }, CFG.cofre || {});
-const RAREZAS = { comun: { nombre: 'Común', color: '#95a5a6' }, raro: { nombre: 'Raro', color: '#3498db' }, epico: { nombre: 'Épico', color: '#9b59b6' }, legendario: { nombre: 'Legendario', color: '#f39c12' } };
+const RAREZAS = { comun: { nombre: t('Común'), color: '#95a5a6' }, raro: { nombre: t('Raro'), color: '#3498db' }, epico: { nombre: t('Épico'), color: '#9b59b6' }, legendario: { nombre: t('Legendario'), color: '#f39c12' } };
 const RAR_ORDER = ['comun', 'raro', 'epico', 'legendario'];
 const MP = CFG.mejorasPartida || {};
 const RP = Object.assign({ comun: 60, raro: 27, epico: 10, legendario: 3 }, CFG.rarezasPartida || {});
@@ -336,7 +336,7 @@ function killEnemy(e) {
   if (e.boss) {
     G.bosses++; G.bossKinds.push(e.kind); G.items.push({ k: 'chest', x: e.x, y: e.y }); dropFruit(e.x + 30, e.y);
     addOrdenPts(100); for (let i = 0; i < 3; i++) G.items.push({ k: 'concha', x: e.x + rnd(-40, 40), y: e.y + rnd(-40, 40) });
-    banner('¡' + ETYPES[e.kind].boss + ' derrotado!'); shake = 12; snd('boom');
+    banner(t('¡{0} derrotado!', ETYPES[e.kind].boss)); shake = 12; snd('boom');
   } else {
     const r = Math.random();
     const pf = e.kind === 'capitan' ? (CFG.probabilidadFrutaCapitan ?? 0.08) : (CFG.probabilidadFruta ?? 0.004);
@@ -368,7 +368,7 @@ function finishOath() {
   }
   G.fx.push({ k: 'ring', x: p.x, y: p.y, r: Math.hypot(vw(), vh()) / 2, col: G.orden.color, t: 0.6, max: 0.6 });
   p.iframe = Math.max(p.iframe, 1.5); shake = 14; snd('shock');
-  banner(`📜 ${OS.rangos[G.rank]} de los ${G.orden.nombre}`);
+  banner('📜 ' + t('{0} de los {1}', OS.rangos[G.rank], G.orden.nombre));
   G.oath = null;
 }
 const powerMul = () => (1 + 0.25 * (G.rank || 0)) * (1 + 0.25 * ou('pot'));
@@ -498,7 +498,7 @@ function updateStorm(dt) {
   const p = G.p;
   if (!G.storm && G.t >= G.nextStorm) {
     const a = rnd(0, TAU); G.storm = { t: 15, dir: [Math.cos(a), Math.sin(a)], next: 1.2, warns: [], flash: 0 };
-    G.nextStorm = G.t + 75; banner('⛈️ ¡Gran Tormenta!', true); snd('boss');
+    G.nextStorm = G.t + 75; banner(t('⛈️ ¡Gran Tormenta!'), true); snd('boss');
   }
   const S = G.storm; if (!S) return;
   S.t -= dt; S.flash = Math.max(0, S.flash - dt * 3);
@@ -521,7 +521,7 @@ function updateStorm(dt) {
     }
   }
   S.warns = S.warns.filter(wn => !wn.done);
-  if (S.t <= 0) { G.storm = null; G.storms++; banner('La tormenta amaina'); }
+  if (S.t <= 0) { G.storm = null; G.storms++; banner(t('La tormenta amaina')); }
 }
 function drawStormWorld() {
   const S = G.storm; if (!S) return;
@@ -558,7 +558,7 @@ function damagePlayer(d) {
   if (G.revives > 0) { // Bote Salvavidas
     G.revives--; p.hp = G.st.maxHp * 0.5; p.iframe = 2.5;
     for (const e of G.enemies) { const dx = e.x - p.x, dy = e.y - p.y, dd = Math.hypot(dx, dy) || 1; if (dd < 260) { e.kx += dx / dd * 900; e.ky += dy / dd * 900; } }
-    banner('¡Segunda oportunidad!'); snd('chest'); shake = 10;
+    banner(t('¡Segunda oportunidad!')); snd('chest'); shake = 10;
     return;
   }
   p.hp = 0; endGame(false);
@@ -828,11 +828,11 @@ function updateSpawns(dt) {
     G.nextSwarm += 75;
     const n = 24 + Math.floor(t / 30), kind = t > 300 ? 'tiburon' : 'cangrejo', R = Math.hypot(vw(), vh()) / 2 + 20;
     for (let i = 0; i < n; i++) { const a = i / n * TAU; spawnEnemy(kind, p.x + Math.cos(a) * R, p.y + Math.sin(a) * R); }
-    banner('¡Emboscada! Te rodean');
+    banner(t('¡Emboscada! Te rodean'));
   }
   if (G.bossIdx < BOSS_KINDS.length && t >= BOSS_TIMES[G.bossIdx]) {
     const k = BOSS_KINDS[G.bossIdx++], [x, y] = ringPos(false);
-    spawnEnemy(k, x, y); banner('¡' + ETYPES[k].boss + ' se acerca!', true); snd('boss'); shake = 8;
+    spawnEnemy(k, x, y); banner(t('¡{0} se acerca!', ETYPES[k].boss), true); snd('boss'); shake = 8;
   }
 }
 function updateEnemies(dt) {
@@ -985,8 +985,8 @@ function update(dt) {
     if (d < 50 || G.pt.atraccion > 0) { const sp2 = G.pt.atraccion > 0 ? 900 : 220; it.x += dx / d * Math.min(sp2 * dt, d); it.y += dy / d * Math.min(sp2 * dt, d); }
     if (d < p.r + 14) {
       it.dead = true;
-      if (it.k === 'food') { p.hp = Math.min(st.maxHp, p.hp + st.maxHp * 0.3); banner('+30% vida'); snd('level'); }
-      else if (it.k === 'magnet') { for (const c of G.coins) c.mag = true; banner('¡Caracola imantada!'); snd('chest'); }
+      if (it.k === 'food') { p.hp = Math.min(st.maxHp, p.hp + st.maxHp * 0.3); banner(t('+30% vida')); snd('level'); }
+      else if (it.k === 'magnet') { for (const c of G.coins) c.mag = true; banner(t('¡Caracola imantada!')); snd('chest'); }
       else if (it.k === 'chest') { G.bounty += 1e6; G.pending++; openChest = true; snd('chest'); }
       else if (it.k === 'concha') { G.res = Math.min(resMax(), G.res + 20); snd('shell'); }
       else if (it.k === 'fruit') { const fr = FRUTAS[it.f]; G.buffs[it.f] = fr.duracion; G.fruits++; if (fr.efecto === 'curacion') p.hp = Math.min(st.maxHp, p.hp + st.maxHp * 0.4); recalc(); banner(fr.nombre + ': ' + fr.descripcion); snd('fruit'); }
@@ -1489,7 +1489,7 @@ function drawHUD() {
   ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.strokeRect(0, 0, W, 12);
   ctx.textBaseline = 'middle'; ctx.lineWidth = 4; ctx.strokeStyle = '#000';
   const txt = (s, x, y, font, align = 'left', col = '#fff') => { ctx.font = font; ctx.textAlign = align; ctx.strokeText(s, x, y); ctx.fillStyle = col; ctx.fillText(s, x, y); };
-  txt('Nivel ' + p.lvl, 10, 72, '900 15px Nunito, sans-serif', 'left', '#9fd8ff');
+  txt(t('Nivel') + ' ' + p.lvl, 10, 72, '900 15px Nunito, sans-serif', 'left', '#9fd8ff');
   if (G.orden) {
     const bw = Math.min(220, W * 0.4), bx = (W - bw) / 2, by = H - 22, col = G.orden.color;
     ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(bx, by, bw, 10);
@@ -1574,7 +1574,7 @@ function drawOath() {
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.strokeStyle = '#000';
   const big = Math.max(24, Math.min(50, W / 20));
   ctx.lineWidth = 6; ctx.font = `${Math.round(big * 0.62)}px "Pirata One", serif`; ctx.fillStyle = col;
-  const head = `— ${o.rank + 1}.º JURAMENTO —`; ctx.strokeText(head, cx, cy - big * 0.5); ctx.fillText(head, cx, cy - big * 0.5);
+  const head = t('— {0}.º JURAMENTO —', o.rank + 1); ctx.strokeText(head, cx, cy - big * 0.5); ctx.fillText(head, cx, cy - big * 0.5);
   ctx.font = `${Math.round(big)}px "Pirata One", serif`; ctx.fillStyle = '#fff';
   const n = Math.floor(Math.max(0, Math.min(1, (t - 0.45) / 1.5)) * o.text.length);
   const lines = wrapText('"' + o.text + '"', W * 0.86);
@@ -1584,9 +1584,9 @@ function drawOath() {
     const pop = Math.min(1, (t - 2.1) / 0.25), sc = 1 + (1 - pop) * 0.6;
     ctx.save(); ctx.translate(cx, y0 + big * 0.3); ctx.scale(sc, sc); ctx.globalAlpha = fade * pop;
     ctx.font = `${Math.round(big * 0.7)}px "Pirata One", serif`; ctx.fillStyle = col; ctx.lineWidth = 6;
-    const rt = `${OS.rangos[o.rank]} de los ${G.orden.nombre}`; ctx.strokeText(rt, 0, 0); ctx.fillText(rt, 0, 0); ctx.restore();
+    const rt = t('{0} de los {1}', OS.rangos[o.rank], G.orden.nombre); ctx.strokeText(rt, 0, 0); ctx.fillText(rt, 0, 0); ctx.restore();
   }
-  if (t > 1.6) { ctx.globalAlpha = fade * 0.7; ctx.font = '700 13px Nunito, sans-serif'; ctx.fillStyle = '#fff'; ctx.fillText('Toca o pulsa una tecla para continuar', cx, H - 30); }
+  if (t > 1.6) { ctx.globalAlpha = fade * 0.7; ctx.font = '700 13px Nunito, sans-serif'; ctx.fillStyle = '#fff'; ctx.fillText(t('Toca o pulsa una tecla para continuar'), cx, H - 30); }
   ctx.globalAlpha = 1;
 }
 function skipOath() { if (G && G.oath && G.oath.t > 1.6) G.oath.t = G.oath.dur; }
@@ -1659,10 +1659,10 @@ function renderHome() {
   $('#islaNombre').textContent = is.nombre;
   $('#islaDesc').textContent = is.descripcion || '';
   const n = Math.max(1, Math.min(5, Math.round(((is.dificultad || 1) - 1) / 0.5) + 1));
-  $('#islaInfo').innerHTML = `Dificultad <span class="stars">${'★'.repeat(n)}${'☆'.repeat(5 - n)}</span> · 🪙 ×${is.berries || 1}` + (SAVE.islas[is.id] ? ` · Mejor: ${mmss(SAVE.islas[is.id])}` : '');
+  $('#islaInfo').innerHTML = `${t('Dificultad')} <span class="stars">${'★'.repeat(n)}${'☆'.repeat(5 - n)}</span> · 🪙 ×${is.berries || 1}` + (SAVE.islas[is.id] ? ` · ${t('Mejor')}: ${mmss(SAVE.islas[is.id])}` : '');
   const lock = $('#islaLock');
   if (un) lock.classList.remove('on');
-  else { const req = ISLAS.find(i => i.id === is.desbloqueo.isla); lock.innerHTML = `<b>🔒</b>Aguanta ${is.desbloqueo.minutos}:00 en ${req ? req.nombre : is.desbloqueo.isla} para desbloquearla`; lock.classList.add('on'); }
+  else { const req = ISLAS.find(i => i.id === is.desbloqueo.isla); lock.innerHTML = '<b>🔒</b>' + t('Aguanta {0}:00 en {1} para desbloquearla', is.desbloqueo.minutos, req ? req.nombre : is.desbloqueo.isla); lock.classList.add('on'); }
   $('#bPlay').disabled = !un;
   $('#islaDots').innerHTML = ISLAS.map((i, k) => `<i class="${k === islaSel ? 'on' : ''} ${islaUnlocked(i) ? '' : 'lock'}"></i>`).join('');
 }
@@ -1672,8 +1672,8 @@ function refreshBest() {
   const o = ordenById(SAVE.ordenSel);
   $('#homeOrden').innerHTML = o ? `🛡️ <b style="color:${o.color}">${o.nombre}</b> · ${OS.rangos[rangoDe(ordenPts(o.id))]}` : '';
   const b = store.get('mdr_best', null);
-  $('#best').textContent = b ? `Mayor recompensa: 💰 ${fmt(b.bounty)} (${b.name})` : '';
-  $('#gold').textContent = `🪙 ${fmt(SAVE.berries)} Doblones de Faro` + (SAVE.partidas ? ` · ${SAVE.partidas} partidas` : '');
+  $('#best').textContent = b ? t('Mayor recompensa: 💰 {0} ({1})', fmt(b.bounty), b.name) : '';
+  $('#gold').textContent = `🪙 ${fmt(SAVE.berries)} ${t('Doblones de Faro')}` + (SAVE.partidas ? ` · ${SAVE.partidas} ${t('partidas')}` : '');
   const nb = misionesListas(), bd = $('#misBadge'); bd.textContent = nb; bd.classList.toggle('on', nb > 0);
 }
 function buildSelect() {
@@ -1689,7 +1689,7 @@ function buildSelect() {
     else {
       const can = SAVE.berries >= ch.price;
       btn.classList.add('locked'); if (!can) btn.classList.add('poor');
-      btn.insertAdjacentHTML('beforeend', `<div class="cost">🔒 ${can ? 'Desbloquear' : 'Necesitas'}: 🪙 ${fmt(ch.price)}</div>`);
+      btn.insertAdjacentHTML('beforeend', `<div class="cost">🔒 ${can ? t('Desbloquear') : t('Necesitas')}: 🪙 ${fmt(ch.price)}</div>`);
       btn.onclick = () => {
         if (SAVE.berries < ch.price) return;
         SAVE.berries -= ch.price; SAVE.desbloqueados.push(ch.id); saveGame(); snd('chest'); buildSelect();
@@ -1700,7 +1700,7 @@ function buildSelect() {
 }
 let shopFrom = 'menu';
 function buildShop() {
-  $('#shopGold').textContent = `🪙 ${fmt(SAVE.berries)} Doblones de Faro`;
+  $('#shopGold').textContent = goldLine();
   const box = $('#upg'); box.innerHTML = '';
   for (const k in MEJORAS) {
     const m = MEJORAS[k], l = ml(k), maxed = l >= m.max, cost = maxed ? 0 : upgradeCost(k), can = !maxed && SAVE.berries >= cost;
@@ -1715,7 +1715,7 @@ function buildShop() {
     box.appendChild(b);
   }
   let spent = 0; for (const k in MEJORAS) for (let i = 0; i < ml(k); i++) spent += costAt(k, i);
-  const r = $('#bRefund'); r.disabled = spent === 0; r.textContent = spent ? `Reembolsar mejoras (+🪙 ${fmt(spent)})` : 'Reembolsar mejoras';
+  const r = $('#bRefund'); r.disabled = spent === 0; r.textContent = spent ? t('Reembolsar mejoras (+🪙 {0})', fmt(spent)) : t('Reembolsar mejoras');
   r.onclick = () => { if (!spent) return; SAVE.berries += spent; SAVE.mejoras = {}; saveGame(); buildShop(); };
 }
 function openShop(from) { shopFrom = from; hide(from); buildShop(); show('shop'); state = 'shop'; }
@@ -1725,11 +1725,11 @@ function closeShop() { hide('shop'); if (shopFrom === 'over') { show('over'); st
 let panelFrom = 'menu';
 function openPanel(id, from, build) { panelFrom = from; hide(from); build(); show(id); state = id; }
 function closePanel(id) { hide(id); if (panelFrom === 'over') { show('over'); state = 'over'; } else { refreshBest(); show('menu'); state = 'menu'; } }
-const goldLine = () => `🪙 ${fmt(SAVE.berries)} Doblones de Faro`;
+const goldLine = () => `🪙 ${fmt(SAVE.berries)} ${t('Doblones de Faro')}`;
 
 function buildMissions() {
   $('#misGold').textContent = goldLine();
-  $('#misCount').textContent = `${SAVE.cobradas.length} / ${MISIONES.length} completadas`;
+  $('#misCount').textContent = t('{0} / {1} completadas', SAVE.cobradas.length, MISIONES.length);
   const box = $('#misList'); box.innerHTML = '';
   const rank = m => SAVE.cobradas.includes(m.id) ? 2 : misionProgreso(m) >= m.meta ? 0 : 1;
   for (const m of MISIONES.slice().sort((a, b) => rank(a) - rank(b))) {
@@ -1739,7 +1739,7 @@ function buildMissions() {
     d.innerHTML = `<div class="mi">${claimed ? '✅' : done ? '🎁' : '📜'}</div><div class="mb"><div class="mn">${m.nombre}</div><div class="md">${m.descripcion}</div>
       <div class="bar"><i style="width:${prog / m.meta * 100}%"></i></div><div class="mp">${f(prog)} / ${f(m.meta)}</div></div>`;
     const b = document.createElement('button'); b.className = 'claim'; b.disabled = !done || claimed;
-    b.textContent = claimed ? 'Cobrada' : `🪙 ${fmt(m.recompensa)}`;
+    b.textContent = claimed ? t('Cobrada') : `🪙 ${fmt(m.recompensa)}`;
     b.onclick = () => { if (!done || claimed) return; SAVE.cobradas.push(m.id); SAVE.berries += m.recompensa; saveGame(); snd('chest'); buildMissions(); };
     d.appendChild(b); box.appendChild(d);
   }
@@ -1752,7 +1752,7 @@ function buildRegistro() {
     ['🍈', 'Frutas comidas', S.frutas], ['👑', 'Jefes derrotados', jefes], ['🏴‍☠️', 'Piratas desbloqueados', `${CHARS.filter(isUnlocked).length} / ${CHARS.length}`],
     ['⚓', 'Mejoras compradas', S.mejorasCompradas], ['🎁', 'Tesoros', `${Object.keys(SAVE.inv).length} / ${Object.keys(TESOROS).length}`],
     ['📜', 'Misiones', `${SAVE.cobradas.length} / ${MISIONES.length}`]];
-  $('#regStats').innerHTML = rows.map(([i, n, v]) => `<div class="st"><span>${i}</span><b>${v}</b><small>${n}</small></div>`).join('');
+  $('#regStats').innerHTML = rows.map(([i, n, v]) => `<div class="st"><span>${i}</span><b>${v}</b><small>${t(n)}</small></div>`).join('');
   $('#regIslas').innerHTML = ISLAS.map(i => `<div class="st"><span>${islaUnlocked(i) ? '🏝️' : '🔒'}</span><b>${SAVE.islas[i.id] ? mmss(SAVE.islas[i.id]) : '--:--'}</b><small>${i.nombre}</small></div>`).join('');
   const box = $('#bestiario'); box.innerHTML = '';
   for (const k in ETYPES) {
@@ -1761,7 +1761,7 @@ function buildRegistro() {
     if (!drawSprite(c2, 'en:' + k, 35, 38, 0, false, false, 60)) MDR_DIBUJO.enemigo(c2, k, 35, 38, 15, 0, false, false);
     const d = document.createElement('div'); d.className = 'beast' + (n ? '' : ' unknown');
     d.appendChild(cv);
-    d.insertAdjacentHTML('beforeend', `<div class="bn">${n ? ETYPES[k].name : '???'}</div><div class="bc">${n ? '☠ ' + fmt(n) : 'Sin descubrir'}</div>`);
+    d.insertAdjacentHTML('beforeend', `<div class="bn">${n ? ETYPES[k].name : '???'}</div><div class="bc">${n ? '☠ ' + fmt(n) : t('Sin descubrir')}</div>`);
     box.appendChild(d);
   }
   const fb = $('#frutasInfo'); fb.innerHTML = '';
@@ -1769,19 +1769,20 @@ function buildRegistro() {
     const fr = FRUTAS[k], cv = document.createElement('canvas'); cv.width = 64; cv.height = 64; cv.style.width = cv.style.height = '32px';
     const c2 = cv.getContext('2d'); c2.scale(2, 2); drawFruit(c2, 16, 18, 7, fr.color, 0);
     const d = document.createElement('div'); d.className = 'fruit-row'; d.appendChild(cv);
-    d.insertAdjacentHTML('beforeend', `<div><b style="color:${fr.color}">${fr.nombre}</b><br><small>${fr.descripcion} durante ${fr.duracion}s</small></div>`);
+    d.insertAdjacentHTML('beforeend', `<div><b style="color:${fr.color}">${fr.nombre}</b><br><small>${fr.descripcion} ${t('durante {0}s', fr.duracion)}</small></div>`);
     fb.appendChild(d);
   }
 }
 
 // --- Tesoros: textos de bonus ---
-const STAT_TXT = { dano: v => `+${Math.round(v * 100)}% daño`, vida: v => `+${Math.round(v * 100)}% vida`, velocidad: v => `+${Math.round(v * 100)}% velocidad`,
-  area: v => `+${Math.round(v * 100)}% área`, iman: v => `+${Math.round(v * 100)}% recogida`, experiencia: v => `+${Math.round(v * 100)}% experiencia`,
-  berries: v => `+${Math.round(v * 100)}% Doblones de Faro`, recarga: v => `-${Math.round(v * 100)}% recarga`, armadura: v => `+${+v.toFixed(1)} armadura`, regen: v => `+${+v.toFixed(2)} vida/s` };
+const pct = (v, w, s = '+') => `${s}${Math.round(v * 100)}% ${t(w)}`;
+const STAT_TXT = { dano: v => pct(v, 'daño'), vida: v => pct(v, 'vida'), velocidad: v => pct(v, 'velocidad'),
+  area: v => pct(v, 'área'), iman: v => pct(v, 'recogida'), experiencia: v => pct(v, 'experiencia'),
+  berries: v => pct(v, 'Doblones de Faro'), recarga: v => pct(v, 'recarga', '-'), armadura: v => `+${+v.toFixed(1)} ${t('armadura')}`, regen: v => `+${+v.toFixed(2)} ${t('vida/s')}` };
 function itemText(id, lvl) { const it = TESOROS[id], m = 1 + 0.25 * ((lvl || 1) - 1); return Object.entries(it.stats || {}).map(([k, v]) => (STAT_TXT[k] || (x => k + ' ' + x))(v * m)).join(' · '); }
 function itemCard(id, extra = '') {
   const it = TESOROS[id], rz = RAREZAS[it.rareza] || RAREZAS.comun, lvl = SAVE.inv[id] || 0;
-  return `<div class="ic">${it.icono}</div><div class="nm">${it.nombre}</div><div class="rz" style="color:${rz.color}">${rz.nombre}${lvl ? ' · Nv ' + lvl : ''}</div><div class="ds">${itemText(id, lvl || 1)}</div>${extra}`;
+  return `<div class="ic">${it.icono}</div><div class="nm">${it.nombre}</div><div class="rz" style="color:${rz.color}">${rz.nombre}${lvl ? ' · ' + t('Nv') + ' ' + lvl : ''}</div><div class="ds">${itemText(id, lvl || 1)}</div>${extra}`;
 }
 
 // --- Cofre del Tesoro (gacha con Doblones de Faro) ---
@@ -1796,9 +1797,9 @@ function pullOne(minRank) {
   const rar = forced ? 'legendario' : rollRarity(minRank);
   SAVE.pity = rar === 'legendario' ? 0 : SAVE.pity + 1; SAVE.tiradas++;
   const ids = Object.keys(TESOROS).filter(id => TESOROS[id].rareza === rar), id = ids[Math.random() * ids.length | 0], cur = SAVE.inv[id] || 0;
-  if (!cur) { SAVE.inv[id] = 1; return { id, tag: '¡NUEVO!' }; }
-  if (cur < COFRE.nivelMax) { SAVE.inv[id] = cur + 1; return { id, tag: `Sube a Nv ${cur + 1}` }; }
-  const rb = COFRE.reembolso[rar] || 0; SAVE.berries += rb; return { id, tag: `Máximo: +${fmt(rb)} 🪙` };
+  if (!cur) { SAVE.inv[id] = 1; return { id, tag: t('¡NUEVO!') }; }
+  if (cur < COFRE.nivelMax) { SAVE.inv[id] = cur + 1; return { id, tag: t('Sube a Nv {0}', cur + 1) }; }
+  const rb = COFRE.reembolso[rar] || 0; SAVE.berries += rb; return { id, tag: t('Máximo: +{0} 🪙', fmt(rb)) };
 }
 function doPull(n) {
   const cost = n === 10 ? COFRE.precio10 : COFRE.precio;
@@ -1820,11 +1821,11 @@ function buildCofre(clear = true) {
   $('#cofGold').textContent = goldLine();
   const P = COFRE.probabilidades;
   $('#cofRates').innerHTML = RAR_ORDER.map(r => `<span style="color:${RAREZAS[r].color}">${RAREZAS[r].nombre} ${P[r]}%</span>`).join(' · ') +
-    `<br>Legendario garantizado en ${Math.max(1, COFRE.garantiaLegendario - SAVE.pity)} tiradas como máximo`;
+    '<br>' + t('Legendario garantizado en {0} tiradas como máximo', Math.max(1, COFRE.garantiaLegendario - SAVE.pity));
   const b1 = $('#bPull1'), b10 = $('#bPull10');
-  b1.textContent = `Abrir 1 · 🪙 ${fmt(COFRE.precio)}`; b10.textContent = `Abrir 10 · 🪙 ${fmt(COFRE.precio10)}`;
+  b1.textContent = t('Abrir 1 · 🪙 {0}', fmt(COFRE.precio)); b10.textContent = t('Abrir 10 · 🪙 {0}', fmt(COFRE.precio10));
   b1.disabled = SAVE.berries < COFRE.precio; b10.disabled = SAVE.berries < COFRE.precio10;
-  if (clear) $('#pullRes').innerHTML = '<div class="hint">Cada tirada da un tesoro permanente. Los repetidos suben de nivel.</div>';
+  if (clear) $('#pullRes').innerHTML = '<div class="hint">' + t('Cada tirada da un tesoro permanente. Los repetidos suben de nivel.') + '</div>';
 }
 
 // --- Inventario ---
@@ -1834,23 +1835,23 @@ function buildInventario() {
   for (let i = 0; i < COFRE.ranuras; i++) {
     const id = SAVE.equip[i], d = document.createElement('button'); d.className = 'slot';
     if (id) { const rz = RAREZAS[TESOROS[id].rareza]; d.style.borderColor = rz.color; d.innerHTML = `<span class="si">${TESOROS[id].icono}</span><small>${TESOROS[id].nombre}</small>`; d.onclick = () => { SAVE.equip.splice(i, 1); saveGame(); buildInventario(); }; }
-    else { d.innerHTML = '<span class="si">➕</span><small>Vacío</small>'; d.disabled = true; }
+    else { d.innerHTML = '<span class="si">➕</span><small>' + t('Vacío') + '</small>'; d.disabled = true; }
     slots.appendChild(d);
   }
   const tot = {};
   for (const id of SAVE.equip) for (const [k, v] of Object.entries(TESOROS[id].stats || {})) tot[k] = (tot[k] || 0) + v * itemMul(id);
-  $('#invTotal').textContent = Object.keys(tot).length ? 'Bonus equipados: ' + Object.entries(tot).map(([k, v]) => (STAT_TXT[k] || (x => k))(v)).join(' · ') : 'Equipa tesoros para obtener bonus en todas tus partidas.';
+  $('#invTotal').textContent = Object.keys(tot).length ? t('Bonus equipados: ') + Object.entries(tot).map(([k, v]) => (STAT_TXT[k] || (x => k))(v)).join(' · ') : t('Equipa tesoros para obtener bonus en todas tus partidas.');
   const grid = $('#invGrid'); grid.innerHTML = '';
   const ids = Object.keys(TESOROS).sort((a, b) => RAR_ORDER.indexOf(TESOROS[b].rareza) - RAR_ORDER.indexOf(TESOROS[a].rareza) || (SAVE.inv[b] ? 1 : 0) - (SAVE.inv[a] ? 1 : 0));
   for (const id of ids) {
     const owned = (SAVE.inv[id] || 0) > 0, eq = SAVE.equip.includes(id), rz = RAREZAS[TESOROS[id].rareza] || RAREZAS.comun;
     const b = document.createElement('button'); b.className = 'card loot' + (owned ? '' : ' unknown') + (eq ? ' equipped' : ''); b.style.borderColor = rz.color;
-    b.innerHTML = owned ? itemCard(id, `<div class="tag">${eq ? '✔ Equipado' : 'Equipar'}</div>`) : `<div class="ic">❔</div><div class="nm">???</div><div class="rz" style="color:${rz.color}">${rz.nombre}</div>`;
+    b.innerHTML = owned ? itemCard(id, `<div class="tag">${eq ? t('✔ Equipado') : t('Equipar')}</div>`) : `<div class="ic">❔</div><div class="nm">???</div><div class="rz" style="color:${rz.color}">${rz.nombre}</div>`;
     b.onclick = () => {
       if (!owned) return;
       if (eq) SAVE.equip = SAVE.equip.filter(x => x !== id);
       else if (SAVE.equip.length < COFRE.ranuras) SAVE.equip.push(id);
-      else { $('#invTotal').textContent = `Tienes las ${COFRE.ranuras} ranuras ocupadas: toca un tesoro equipado para quitarlo.`; return; }
+      else { $('#invTotal').textContent = t('Tienes las {0} ranuras ocupadas: toca un tesoro equipado para quitarlo.', COFRE.ranuras); return; }
       saveGame(); buildInventario();
     };
     grid.appendChild(b);
@@ -1867,18 +1868,18 @@ function buildOrdenes() {
     const cv = document.createElement('canvas'); cv.width = 120; cv.height = 120; cv.style.width = cv.style.height = '60px';
     const c2 = cv.getContext('2d'); c2.scale(2, 2); drawCompanion(c2, o.companero.forma, 30, 30, o.color, 0, 1.6);
     const head = document.createElement('div'); head.className = 'oh'; head.appendChild(cv);
-    head.insertAdjacentHTML('beforeend', `<div><div class="on">${o.nombre}</div><div class="ol">«${o.lema}»</div><div class="oc">Compañero: ${o.companero.nombre}</div></div>`);
+    head.insertAdjacentHTML('beforeend', `<div><div class="on">${o.nombre}</div><div class="ol">«${o.lema}»</div><div class="oc">${t('Compañero: {0}', o.companero.nombre)}</div></div>`);
     d.appendChild(head);
     d.insertAdjacentHTML('beforeend', `
-      <div class="orank"><b>${OS.rangos[r]}</b>${nextPts != null ? ` · ${fmt(pts)} / ${fmt(nextPts)} para ${OS.rangos[r + 1]}` : ' · ¡Rango máximo!'}
+      <div class="orank"><b>${OS.rangos[r]}</b>${nextPts != null ? ' · ' + t('{0} / {1} para {2}', fmt(pts), fmt(nextPts), OS.rangos[r + 1]) : ' · ' + t('¡Rango máximo!')}
         <div class="bar"><i style="width:${nextPts != null ? Math.min(100, (pts - OS.puntosRango[r]) / (nextPts - OS.puntosRango[r]) * 100) : 100}%"></i></div></div>
       <div class="opw">${o.poderes.map((pw, i) => `<div><span class="k">${i ? 'E' : 'Q'}</span> ${pw.icono} <b>${pw.nombre}</b> <small>(${pw.coste} ${OS.energia})</small><br><small>${pw.descripcion}</small></div>`).join('')}</div>
-      ${o.especial ? `<div class="oesp">✴️ <b>${o.especial.nombre}</b> <small>(mejora especial en partida)</small><br><small>${o.especial.descripcion}</small></div>` : ''}
-      <div class="ojur">${OS.juramentos.slice(0, 4).map((j, i) => i + 1 <= r ? `<div>✅ ${j}</div>` : `<div class="lock">🔒 ${i + 2}.º juramento: ${OS.rangos[i + 1]}</div>`).join('')}</div>`);
+      ${o.especial ? `<div class="oesp">✴️ <b>${o.especial.nombre}</b> <small>(${t('mejora especial en partida')})</small><br><small>${o.especial.descripcion}</small></div>` : ''}
+      <div class="ojur">${OS.juramentos.slice(0, 4).map((j, i) => i + 1 <= r ? `<div>✅ ${j}</div>` : `<div class="lock">🔒 ${t('{0}.º juramento: {1}', i + 2, OS.rangos[i + 1])}</div>`).join('')}</div>`);
     const b = document.createElement('button'); b.className = 'claim';
-    if (act) { b.textContent = '✔ Orden activa'; b.disabled = true; }
-    else if (un) { b.textContent = 'Elegir esta orden'; b.onclick = () => { SAVE.ordenSel = o.id; saveGame(); snd('power'); buildOrdenes(); refreshBest(); }; }
-    else { const can = SAVE.berries >= o.precio; b.textContent = `🔒 ${can ? 'Desbloquear' : 'Necesitas'} · 🪙 ${fmt(o.precio)}`; b.disabled = !can; b.onclick = () => { if (SAVE.berries < o.precio) return; SAVE.berries -= o.precio; SAVE.ordenDesb.push(o.id); SAVE.ordenSel = o.id; saveGame(); snd('chest'); buildOrdenes(); }; }
+    if (act) { b.textContent = t('✔ Orden activa'); b.disabled = true; }
+    else if (un) { b.textContent = t('Elegir esta orden'); b.onclick = () => { SAVE.ordenSel = o.id; saveGame(); snd('power'); buildOrdenes(); refreshBest(); }; }
+    else { const can = SAVE.berries >= o.precio; b.textContent = `🔒 ${can ? t('Desbloquear') : t('Necesitas')} · 🪙 ${fmt(o.precio)}`; b.disabled = !can; b.onclick = () => { if (SAVE.berries < o.precio) return; SAVE.berries -= o.precio; SAVE.ordenDesb.push(o.id); SAVE.ordenSel = o.id; saveGame(); snd('chest'); buildOrdenes(); }; }
     d.appendChild(b); box.appendChild(d);
   }
 }
@@ -1908,21 +1909,21 @@ function getOptions(n) {
   return shuffle(res);
 }
 function optInfo(o) {
-  if (o.type === 'w') { const d = WEAPONS[o.id]; return { icon: d.icon, name: d.name, tag: o.lvl === 1 ? '¡Nueva arma!' : 'Nivel ' + o.lvl, desc: d.desc[o.lvl - 1] }; }
-  if (o.type === 'p') { const d = PASSIVES[o.id]; return { icon: d.icon, name: d.name, tag: o.lvl === 1 ? '¡Nuevo objeto!' : 'Nivel ' + o.lvl, desc: d.desc }; }
+  if (o.type === 'w') { const d = WEAPONS[o.id]; return { icon: d.icon, name: d.name, tag: o.lvl === 1 ? t('¡Nueva arma!') : t('Nivel') + ' ' + o.lvl, desc: d.desc[o.lvl - 1] }; }
+  if (o.type === 'p') { const d = PASSIVES[o.id]; return { icon: d.icon, name: d.name, tag: o.lvl === 1 ? t('¡Nuevo objeto!') : t('Nivel') + ' ' + o.lvl, desc: d.desc }; }
   if (o.type === 'o') {
     const d = o.id === 'esp' ? { nombre: G.orden.especial.nombre, icono: '✴️', descripcion: G.orden.especial.descripcion } : MO[o.id];
-    return { icon: d.icono, name: d.nombre, tag: `${G.orden.nombre}${o.id === 'esp' ? ' · Especial' : ' · Nv ' + (ou(o.id) + 1)}`, desc: d.descripcion, ordCol: G.orden.color };
+    return { icon: d.icono, name: d.nombre, tag: `${G.orden.nombre}${o.id === 'esp' ? ' · ' + t('Especial') : ' · ' + t('Nv') + ' ' + (ou(o.id) + 1)}`, desc: d.descripcion, ordCol: G.orden.color };
   }
   if (o.type === 'b') { const d = MP[o.id], ri = RAR_ORDER.indexOf(o.rar), v = d.valores[ri]; return { icon: d.icono, name: d.name || d.nombre, tag: RAREZAS[o.rar].nombre, desc: (STAT_TXT[d.stat] || (x => d.stat + ' ' + x))(v), rar: o.rar }; }
-  if (o.type === 'heal') return { icon: '🍗', name: 'Banquete', tag: 'Extra', desc: 'Recupera un 50% de vida' };
-  return { icon: '💰', name: 'Botín', tag: 'Extra', desc: '+500.000 de recompensa' };
+  if (o.type === 'heal') return { icon: '🍗', name: t('Banquete'), tag: t('Extra'), desc: t('Recupera un 50% de vida') };
+  return { icon: '💰', name: t('Botín'), tag: t('Extra'), desc: t('+500.000 de recompensa') };
 }
 function openLevelUp(isChest) {
   state = 'levelup'; snd('level');
   curOpts = getOptions(isChest ? 4 : 3);
-  $('#luTitle').textContent = isChest ? '¡Cofre del tesoro!' : '¡Nivel ' + G.p.lvl + '!';
-  $('#luSub').textContent = isChest ? '+1.000.000 de recompensa. Elige tu botín:' : (G.pending > 1 ? `Mejoras pendientes: ${G.pending}` : 'Elige una mejora');
+  $('#luTitle').textContent = isChest ? t('¡Cofre del tesoro!') : t('¡Nivel {0}!', G.p.lvl);
+  $('#luSub').textContent = isChest ? t('+1.000.000 de recompensa. Elige tu botín:') : (G.pending > 1 ? t('Mejoras pendientes: {0}', G.pending) : t('Elige una mejora'));
   const box = $('#opts'); box.innerHTML = '';
   cardsReadyAt = performance.now() + 250;
   curOpts.forEach((o, i) => {
@@ -1952,14 +1953,14 @@ function pauseGame() {
   state = 'pause';
   const st = G.st;
   $('#pStats').innerHTML = `
-    <b>${G.ch.name}</b> · Nivel ${G.p.lvl} · ${mmss(G.t)}<br>
-    ❤️ Vida: ${Math.ceil(G.p.hp)} / ${Math.round(st.maxHp)}<br>
-    ⚔️ Daño: ×${st.might.toFixed(2)} · ⏳ Recarga: ×${st.cd.toFixed(2)}<br>
-    🔭 Área: ×${st.area.toFixed(2)} · 👢 Velocidad: ${Math.round(st.speed)}<br>
-    🛡️ Armadura: ${st.armor} · 🦜 Proyectiles extra: ${st.amount}<br>
-    📜 Experiencia: ×${st.xpMul.toFixed(2)} · 🛟 Revivir: ${G.revives}
+    <b>${G.ch.name}</b> · ${t('Nivel')} ${G.p.lvl} · ${mmss(G.t)}<br>
+    ❤️ ${t('Vida')}: ${Math.ceil(G.p.hp)} / ${Math.round(st.maxHp)}<br>
+    ⚔️ ${t('Daño')}: ×${st.might.toFixed(2)} · ⏳ ${t('Recarga')}: ×${st.cd.toFixed(2)}<br>
+    🔭 ${t('Área')}: ×${st.area.toFixed(2)} · 👢 ${t('Velocidad')}: ${Math.round(st.speed)}<br>
+    🛡️ ${t('Armadura')}: ${st.armor} · 🦜 ${t('Proyectiles extra')}: ${st.amount}<br>
+    📜 ${t('Experiencia')}: ×${st.xpMul.toFixed(2)} · 🛟 ${t('Revivir')}: ${G.revives}
     ${G.orden ? `<br>🛡️ ${G.orden.nombre} · ${OS.rangos[G.rank]} · Q: ${G.orden.poderes[0].nombre} · E: ${G.orden.poderes[1].nombre}` : ''}
-    ${G.runPicks.length ? '<br>✨ Mejoras de la partida: ' + G.runPicks.map(o => `<span style="color:${RAREZAS[o.rar].color}">${MP[o.id].icono}</span>`).join(' ') : ''}`;
+    ${G.runPicks.length ? '<br>✨ ' + t('Mejoras de la partida') + ': ' + G.runPicks.map(o => `<span style="color:${RAREZAS[o.rar].color}">${MP[o.id].icono}</span>`).join(' ') : ''}`;
   show('pause');
 }
 function resumeGame() { if (state !== 'pause') return; hide('pause'); state = 'play'; last = performance.now(); }
@@ -1987,11 +1988,11 @@ function endGame(won) {
   drawPortrait(c2, G.ch, 110, 98, 42);
   $('#oName').textContent = G.ch.name;
   $('#oBounty').textContent = '💰 ' + fmt(G.bounty);
-  $('#oStats').textContent = `Tiempo ${mmss(G.t)} · Nivel ${G.p.lvl} · Derribados ${fmt(G.kills)} · Jefes ${G.bosses}`;
+  $('#oStats').textContent = t('Tiempo {0} · Nivel {1} · Derribados {2} · Jefes {3}', mmss(G.t), G.p.lvl, fmt(G.kills), G.bosses);
   saveGame();
-  $('#oMsg').textContent = (G.orden && G.rank > G.rank0 ? `📜 ¡Has pronunciado un juramento! Ahora eres ${OS.rangos[G.rank]} de los ${G.orden.nombre}. ` : '') + (nuevas.length ? `🏝️ ¡Nueva isla desbloqueada: ${nuevas.map(i => i.nombre).join(', ')}! ` : '') + (won ? '¡Sobreviviste 10 minutos! Eres la leyenda de los mares.' : 'Has caído… pero tu leyenda crece.') + (record ? ' ¡Nueva recompensa récord!' : '');
+  $('#oMsg').textContent = (G.orden && G.rank > G.rank0 ? t('📜 ¡Has pronunciado un juramento! Ahora eres {0} de los {1}. ', OS.rangos[G.rank], G.orden.nombre) : '') + (nuevas.length ? t('🏝️ ¡Nueva isla desbloqueada: {0}! ', nuevas.map(i => i.nombre).join(', ')) : '') + (won ? t('¡Sobreviviste 10 minutos! Eres la leyenda de los mares.') : t('Has caído… pero tu leyenda crece.')) + (record ? t(' ¡Nueva recompensa récord!') : '');
   const ml_ = misionesListas();
-  $('#oGold').textContent = `+${fmt(G.gold)} 🪙 Doblones de Faro · Total: ${fmt(SAVE.berries)}` + (ml_ ? ` · 📜 ¡${ml_} misión${ml_ > 1 ? 'es' : ''} por cobrar!` : '');
+  $('#oGold').textContent = `+${fmt(G.gold)} 🪙 ${t('Doblones de Faro')} · Total: ${fmt(SAVE.berries)}` + (ml_ ? (ml_ > 1 ? t(' · 📜 ¡{0} misiones por cobrar!', ml_) : t(' · 📜 ¡1 misión por cobrar!')) : '');
   setTimeout(() => show('over'), won ? 200 : 500);
 }
 
@@ -2002,6 +2003,8 @@ $('#bAyuda').onclick = () => { initAudio(); openPanel('ayuda', 'menu', () => {})
 $('#ayuda .back').onclick = () => closePanel('ayuda');
 $('#bBack').onclick = () => { hide('select'); show('menu'); state = 'menu'; refreshBest(); };
 $('#bShop').onclick = () => { initAudio(); openShop('menu'); };
+$('#bLang').textContent = '🌐 ' + (window.MDR_LANG === 'en' ? 'EN' : 'ES');
+$('#bLang').onclick = () => window.MDR_SET_LANG(window.MDR_LANG === 'en' ? 'es' : 'en');
 $('#bOrd').onclick = () => { initAudio(); openPanel('ordenes', 'menu', buildOrdenes); };
 $('#ordenes .back').onclick = () => closePanel('ordenes');
 $('#bMis').onclick = () => { initAudio(); openPanel('missions', 'menu', buildMissions); };
