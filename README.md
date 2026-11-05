@@ -108,7 +108,7 @@ Ver [docs/TIENDAS.md](docs/TIENDAS.md).
 
 ## Versión para PC (Windows)
 
-Descarga directa: **[MarDeRecompensas.exe](https://github.com/Ricky1509/ONE-PIECE-SURVIVOR/releases/download/escritorio/MarDeRecompensas.exe)**. No necesita instalación: se descarga y se abre.
+Descarga directa: **[MarDeRecompensas.exe](https://github.com/Ricky1509/ONE-PIECE-SURVIVOR/releases/download/escritorio/MarDeRecompensas.exe)** (se abre directamente, sin instalar) o **[MarDeRecompensas-Windows.zip](https://github.com/Ricky1509/ONE-PIECE-SURVIVOR/releases/download/escritorio/MarDeRecompensas-Windows.zip)** (descomprime y abre `Mar de Recompensas.exe`).
 
 - Windows puede mostrar el aviso "Windows protegió tu PC" porque el programa no está firmado: pulsa *Más información → Ejecutar de todas formas*.
 - **F11** activa la pantalla completa. El progreso se guarda en el propio PC.

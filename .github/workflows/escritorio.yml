@@ -19,6 +19,9 @@ jobs:
     defaults:
       run:
         working-directory: desktop
+        shell: bash
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -26,22 +29,30 @@ jobs:
           node-version: 22
       - name: Instalar dependencias
         run: npm install --no-audit --no-fund
-      - name: Compilar MarDeRecompensas.exe
-        run: npm run dist
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Compilar la aplicación (carpeta win-unpacked)
+        run: npm run preparar && npx electron-builder --win dir --publish never
       - name: Probar que el juego abre en Windows
-        shell: bash
         run: MDR_SMOKE=1 timeout 90 "dist/win-unpacked/Mar de Recompensas.exe"
+      - name: Empaquetar en .zip
+        shell: pwsh
+        run: Compress-Archive -Path "dist/win-unpacked/*" -DestinationPath "dist/MarDeRecompensas-Windows.zip" -Force
+      - name: Crear MarDeRecompensas.exe portable (con reintentos)
+        continue-on-error: true
+        run: |
+          for i in 1 2 3 4; do
+            npx electron-builder --win portable --prepackaged dist/win-unpacked --publish never && exit 0
+            echo "Intento $i fallido (descarga de herramientas). Reintentando en $((i*20)) s..."; sleep $((i*20))
+          done
+          exit 1
       - name: Publicar en la página de descargas
-        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          NOTAS="Versión para Windows de Mar de Recompensas. Descarga MarDeRecompensas.exe y ábrelo: no necesita instalación. Se actualiza automáticamente con cada cambio del juego (commit ${GITHUB_SHA::7})."
+          NOTAS="Versión para Windows de Mar de Recompensas (commit ${GITHUB_SHA::7}). MarDeRecompensas.exe: se abre directamente, sin instalar. MarDeRecompensas-Windows.zip: descomprímelo y abre 'Mar de Recompensas.exe'. Se actualiza sola con cada cambio del juego."
           if gh release view escritorio >/dev/null 2>&1; then
             gh release edit escritorio --notes "$NOTAS"
           else
             gh release create escritorio --title "Mar de Recompensas para Windows" --notes "$NOTAS" --latest
           fi
-          gh release upload escritorio dist/MarDeRecompensas.exe --clobber
+          gh release upload escritorio dist/MarDeRecompensas-Windows.zip --clobber
+          if [ -f dist/MarDeRecompensas.exe ]; then gh release upload escritorio dist/MarDeRecompensas.exe --clobber; fi
