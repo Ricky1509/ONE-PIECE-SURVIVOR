@@ -22,31 +22,66 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
 };
 
-// ---------- Sonido (sintetizado) ----------
-let AC = null, muted = store.get('mdr_muted', false);
-function initAudio() { if (AC) return; try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; } }
-const SOUNDS = {
-  hit: { type: 'square', f0: 260, f1: 120, d: .05, v: .025, gap: .05 },
-  coin: { type: 'sine', f0: 900, f1: 1500, d: .06, v: .035, gap: .045 },
-  level: { type: 'triangle', f0: 400, f1: 1300, d: .4, v: .12, gap: .2 },
-  hurt: { type: 'sawtooth', f0: 220, f1: 60, d: .16, v: .07, gap: .25 },
-  boom: { type: 'sawtooth', f0: 130, f1: 30, d: .3, v: .07, gap: .08 },
-  zap: { type: 'square', f0: 1700, f1: 300, d: .12, v: .03, gap: .06 },
-  shot: { type: 'square', f0: 700, f1: 200, d: .05, v: .025, gap: .05 },
-  slash: { type: 'triangle', f0: 900, f1: 250, d: .09, v: .04, gap: .08 },
-  boss: { type: 'sawtooth', f0: 70, f1: 160, d: .9, v: .14, gap: 1 },
-  chest: { type: 'triangle', f0: 600, f1: 1800, d: .5, v: .1, gap: .3 },
+// ---------- Sonido (sintetizado con Web Audio) ----------
+let AC = null, master = null, noiseBuf = null, muted = store.get('mdr_muted', false);
+function initAudio() {
+  if (AC) return;
+  try {
+    AC = new (window.AudioContext || window.webkitAudioContext)();
+    const comp = AC.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 6;
+    master = AC.createGain(); master.gain.value = 0.8; master.connect(comp); comp.connect(AC.destination);
+    noiseBuf = AC.createBuffer(1, AC.sampleRate, AC.sampleRate);
+    const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  } catch (e) { AC = null; }
+}
+// tono con barrido de frecuencia
+function tone(type, f0, f1, dur, vol, delay = 0, attack = 0.004) {
+  const t = AC.currentTime + delay, o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.setValueAtTime(f0, t); if (f1 && f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + attack); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.03);
+}
+// ruido filtrado (disparos, explosiones, golpes, viento)
+function noise(dur, vol, type, f0, f1, q = 1, delay = 0, attack = 0.002) {
+  const t = AC.currentTime + delay, s = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
+  s.buffer = noiseBuf; f.type = type; f.Q.value = q; f.frequency.setValueAtTime(f0, t); if (f1 && f1 !== f0) f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + attack); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  s.connect(f); f.connect(g); g.connect(master); s.start(t, Math.random() * 0.4); s.stop(t + dur + 0.03);
+}
+let coinStep = 0, lastCoin = 0;
+const PENTA = [0, 2, 4, 7, 9];
+const SFX = {
+  shot:   { gap: .05, f() { noise(.09, .32, 'bandpass', 2600, 700, .9); tone('triangle', 190, 55, .08, .22); } },
+  cannon: { gap: .12, f() { noise(.3, .45, 'lowpass', 1400, 90, .7); tone('sine', 110, 38, .3, .4); } },
+  boom:   { gap: .08, f() { noise(.5, .5, 'lowpass', 1100, 60, .6); tone('sine', 80, 30, .45, .35); } },
+  slash:  { gap: .07, f() { noise(.14, .22, 'bandpass', 5000, 1300, 2.5, 0, .02); } },
+  throw:  { gap: .08, f() { noise(.18, .18, 'bandpass', 1500, 500, 2, 0, .02); tone('sine', 300, 180, .1, .05); } },
+  zap:    { gap: .06, f() { noise(.18, .16, 'highpass', 4000, 2000, .7); tone('square', 1900, 180, .12, .05); tone('sawtooth', 120, 60, .15, .06); } },
+  ice:    { gap: .08, f() { tone('triangle', 2600, 1900, .12, .07); tone('sine', 3400, 3000, .18, .04, .03); noise(.08, .06, 'highpass', 6000, 6000, 1); } },
+  drum:   { gap: .1, f() { tone('sine', 140, 48, .3, .5); noise(.12, .2, 'lowpass', 600, 200, 1); } },
+  wind:   { gap: .3, f() { noise(.8, .1, 'bandpass', 400, 1400, 3, 0, .2); } },
+  hit:    { gap: .045, f() { noise(.05, .1, 'lowpass', 1800, 500, 1); tone('sine', 240, 150, .045, .05); } },
+  kill:   { gap: .04, f() { noise(.12, .08, 'bandpass', 900, 250, 1.2, 0, .01); } },
+  // experiencia: campanita que sube de tono si recoges varias seguidas
+  coin:   { gap: .03, f() {
+    const now = AC.currentTime; coinStep = now - lastCoin < .35 ? coinStep + 1 : 0; lastCoin = now;
+    const k = Math.min(coinStep, 14), fq = 880 * Math.pow(2, (PENTA[k % 5] + 12 * Math.floor(k / 5)) / 12);
+    tone('sine', fq, fq, .14, .09); tone('triangle', fq * 2, fq * 2, .07, .03);
+  } },
+  level:  { gap: .2, f() { [523, 659, 784, 1047].forEach((fq, i) => { tone('triangle', fq, fq, .25, .14, i * .07); tone('sine', fq * 2, fq * 2, .15, .04, i * .07); }); } },
+  fruit:  { gap: .2, f() { tone('sine', 400, 1100, .15, .12); tone('sine', 600, 1600, .15, .1, .08); tone('triangle', 1300, 1300, .25, .05, .16); } },
+  chest:  { gap: .3, f() { [784, 988, 1175, 1568, 1976].forEach((fq, i) => tone('triangle', fq, fq, .3, .1, i * .06)); noise(.4, .05, 'highpass', 7000, 7000, 1, .1); } },
+  hurt:   { gap: .25, f() { tone('sawtooth', 170, 70, .2, .14); noise(.15, .15, 'lowpass', 900, 200, 1); } },
+  boss:   { gap: 1, f() { tone('sawtooth', 65, 62, 1.1, .16, 0, .08); tone('sawtooth', 98, 94, 1.1, .1, 0, .08); noise(1.0, .08, 'lowpass', 300, 100, 1, 0, .2); } },
+  ui:     { gap: .05, f() { tone('triangle', 660, 880, .06, .06); } },
 };
 const lastSnd = {};
 function snd(name) {
-  if (!AC || muted) return;
-  const now = AC.currentTime, d = SOUNDS[name];
-  if (lastSnd[name] && now - lastSnd[name] < d.gap) return;
+  if (!AC || muted || !SFX[name]) return;
+  const now = AC.currentTime;
+  if (lastSnd[name] && now - lastSnd[name] < SFX[name].gap) return;
   lastSnd[name] = now;
-  const o = AC.createOscillator(), g = AC.createGain();
-  o.type = d.type; o.frequency.setValueAtTime(d.f0, now); o.frequency.exponentialRampToValueAtTime(d.f1, now + d.d);
-  g.gain.setValueAtTime(d.v, now); g.gain.exponentialRampToValueAtTime(0.0001, now + d.d);
-  o.connect(g).connect(AC.destination); o.start(now); o.stop(now + d.d + .02);
+  try { SFX[name].f(); } catch (e) {}
 }
 
 // ---------- Datos (desde js/config.js) ----------
@@ -120,9 +155,15 @@ function misionProgreso(m) {
     case 'recompensa': return st.mejorRecompensa;
     case 'tiradas': return SAVE.tiradas;
     case 'tesoros': return Object.keys(SAVE.inv).filter(k => SAVE.inv[k] > 0).length;
+    case 'islas': return ISLAS.filter(islaUnlocked).length;
   }
   return 0;
 }
+// ---------- Islas ----------
+const ISLAS = (CFG.islas && CFG.islas.length) ? CFG.islas : [{ id: 'calavera', nombre: 'Isla Calavera', tema: 'playa', dificultad: 1, berries: 1, descripcion: '' }];
+SAVE.islas = SAVE.islas || {};
+let islaSel = Math.max(0, Math.min(SAVE.islaSel || 0, ISLAS.length - 1));
+function islaUnlocked(is) { const d = is.desbloqueo; return !d || (SAVE.islas[d.isla] || 0) >= d.minutos * 60; }
 const misionesListas = () => MISIONES.filter(m => misionProgreso(m) >= m.meta && !SAVE.cobradas.includes(m.id)).length;
 
 // ---------- Sprites ----------
@@ -167,9 +208,9 @@ let G = null, state = 'menu', shake = 0, menuT = 0, curOpts = [], cardsReadyAt =
 const keys = new Set();
 const joy = { active: false, id: null, ox: 0, oy: 0, x: 0, y: 0 };
 
-function newGame(ch) {
+function newGame(ch, isla) {
   G = {
-    ch, t: 0, kills: 0, bounty: 0, bosses: 0, spawnAcc: 0, nextSwarm: 75, bossIdx: 0, won: false,
+    ch, isla, t: 0, kills: 0, bounty: 0, bosses: 0, spawnAcc: 0, nextSwarm: 75, bossIdx: 0, won: false,
     p: { x: 0, y: 0, r: 14, hp: 100, iframe: 0, hurtT: 0, face: 0, mvx: 0, mvy: 0, moving: false, xp: 0, lvl: 1, xpNext: 5 },
     weapons: [], passives: {}, enemies: [], bullets: [], balls: [], fx: [], coins: [], items: [], nums: [], parts: [],
     pending: 0, banner: null, st: null, revives: Math.floor(pm('revivir')), gold: 0,
@@ -177,6 +218,7 @@ function newGame(ch) {
   };
   G.weapons.push({ id: ch.weapon, lvl: 1, t: 0.3 });
   recalc(); G.p.hp = G.st.maxHp;
+  banner('🏝️ ' + isla.nombre);
 }
 function recalc() {
   const c = G.ch.bonus || {}, lv = k => G.passives[k] || 0, old = G.st;
@@ -243,6 +285,8 @@ function killEnemy(e) {
     G.parts.push({ x: e.x, y: e.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, t: rnd(.3, .6), c: col, r: rnd(2, 4) });
   }
   G.killsBy[e.kind] = (G.killsBy[e.kind] || 0) + 1;
+  if (G.fx.length < 120) G.fx.push({ k: 'poof', x: e.x, y: e.y, r: e.r, t: 0.35, max: 0.35 });
+  snd('kill');
   if (e.boss) {
     G.bosses++; G.bossKinds.push(e.kind); G.items.push({ k: 'chest', x: e.x, y: e.y }); dropFruit(e.x + 30, e.y);
     banner('¡' + ETYPES[e.kind].boss + ' derrotado!'); shake = 12; snd('boom');
@@ -381,7 +425,7 @@ function updateWeapons(dt) {
             else { const a = rnd(0, TAU); tx = p.x + Math.cos(a) * 160; ty = p.y + Math.sin(a) * 160; }
             G.balls.push({ sx: p.x, sy: p.y, tx, ty, t: 0, dur: rnd(.55, .7), ar, dmg });
           }
-          snd('shot');
+          snd('cannon');
         }
         break;
       }
@@ -405,7 +449,7 @@ function updateWeapons(dt) {
             const a = off + i * TAU / n;
             G.bullets.push({ kind: 'hielo', x: p.x, y: p.y, vx: Math.cos(a) * 380, vy: Math.sin(a) * 380, r: 6, dmg, pierce: 0, life: 0.9 * st.area, hit: new Set(), slowT, slowA });
           }
-          snd('zap');
+          snd('ice');
         }
         break;
       }
@@ -419,13 +463,13 @@ function updateWeapons(dt) {
             const a = base + (i - (n - 1) / 2) * 0.35;
             G.bullets.push({ kind: 'arpon', x: p.x, y: p.y, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd, r: 8, dmg, pierce: 1e9, life: 3, out: L >= 5 ? 0.6 : 0.45, hit: new Set() });
           }
-          snd('shot');
+          snd('throw');
         }
         break;
       }
       case 'tambor': {
         const R = 140 * st.area * (L >= 2 ? 1.25 : 1), dmg = 12 * (L >= 3 ? 1.4 : 1) * st.might;
-        const wave = () => { G.waves.push({ x: p.x, y: p.y, R, r: 0, dmg, hit: new Set() }); snd('boom'); };
+        const wave = () => { G.waves.push({ x: p.x, y: p.y, R, r: 0, dmg, hit: new Set() }); snd('drum'); };
         w.t -= dt;
         if (w.pend > 0) { w.pend -= dt; if (w.pend <= 0) wave(); }
         if (w.t <= 0) { w.t = 2.0 * st.cd * (L >= 4 ? 0.8 : 1); wave(); if (L >= 5) w.pend = 0.35; }
@@ -441,6 +485,7 @@ function updateWeapons(dt) {
             G.tornados.push({ x: p.x, y: p.y, vx: Math.cos(a) * 100, vy: Math.sin(a) * 100, R: 34 * st.area * (L >= 3 ? 1.3 : 1),
               dmg: 7 * (L >= 3 ? 1.4 : 1) * st.might, life: L >= 5 ? 6 : 3, tick: 0, ph: rnd(0, TAU) });
           }
+          snd('wind');
         }
         break;
       }
@@ -450,9 +495,9 @@ function updateWeapons(dt) {
 
 // ---------- Enemigos ----------
 function spawnEnemy(kind, x, y) {
-  const T = ETYPES[kind], t = G.t, hm = T.boss ? 1 + t / 300 : 1 + t / 90;
+  const T = ETYPES[kind], t = G.t, dif = G.isla.dificultad || 1, hm = (T.boss ? 1 + t / 300 : 1 + t / 90) * dif;
   G.enemies.push({
-    kind, x, y, r: T.r, hp: T.hp * hm, maxHp: T.hp * hm, spd: T.spd * rnd(.9, 1.1), dmg: T.dmg * (1 + t / 400),
+    kind, x, y, r: T.r, hp: T.hp * hm, maxHp: T.hp * hm, spd: T.spd * rnd(.9, 1.1), dmg: T.dmg * (1 + t / 400) * (1 + (dif - 1) * 0.5),
     xp: T.xp, bounty: T.bounty, boss: !!T.boss, kx: 0, ky: 0, flash: 0, lh: {}, dead: false, ph: rnd(0, TAU), seed: Math.random() * 16 | 0, dash: 0, dashCd: 4, q: 0,
   });
 }
@@ -629,7 +674,7 @@ function update(dt) {
       if (it.k === 'food') { p.hp = Math.min(st.maxHp, p.hp + st.maxHp * 0.3); banner('+30% vida'); snd('level'); }
       else if (it.k === 'magnet') { for (const c of G.coins) c.mag = true; banner('¡Caracola imantada!'); snd('chest'); }
       else if (it.k === 'chest') { G.bounty += 1e6; G.pending++; openChest = true; snd('chest'); }
-      else if (it.k === 'fruit') { const fr = FRUTAS[it.f]; G.buffs[it.f] = fr.duracion; G.fruits++; recalc(); banner(fr.nombre + ': ' + fr.descripcion); snd('level'); }
+      else if (it.k === 'fruit') { const fr = FRUTAS[it.f]; G.buffs[it.f] = fr.duracion; G.fruits++; recalc(); banner(fr.nombre + ': ' + fr.descripcion); snd('fruit'); }
     }
   }
   G.items = G.items.filter(i => !i.dead);
@@ -649,38 +694,7 @@ function update(dt) {
 }
 
 // ---------- Dibujo ----------
-function drawGround(cx, cy) {
-  const T = 110, hw = vw() / 2 + T, hh = vh() / 2 + T;
-  const x0 = Math.floor((cx - hw) / T), x1 = Math.floor((cx + hw) / T), y0 = Math.floor((cy - hh) / T), y1 = Math.floor((cy + hh) / T);
-  for (let iy = y0; iy <= y1; iy++) for (let ix = x0; ix <= x1; ix++) {
-    const h = hash(ix, iy), X = ix * T, Y = iy * T;
-    ctx.fillStyle = h < 0.5 ? '#ecd8a2' : '#e6d098';
-    ctx.fillRect(X, Y, T + 1, T + 1);
-    const dx = X + 20 + hash(ix + 999, iy - 777) * 70, dy = Y + 20 + hash(ix - 55, iy + 31) * 70;
-    if (h < 0.04) { // palmera
-      ctx.fillStyle = 'rgba(0,0,0,.12)'; ctx.beginPath(); ctx.ellipse(dx + 6, dy + 4, 30, 10, 0, 0, TAU); ctx.fill();
-      ctx.strokeStyle = '#8a5a2b'; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(dx, dy); ctx.quadraticCurveTo(dx + 8, dy - 25, dx + 2, dy - 48); ctx.stroke();
-      ctx.fillStyle = '#2e8b57';
-      for (let k = 0; k < 5; k++) { const a = k / 5 * TAU + h * 40; ctx.beginPath(); ctx.ellipse(dx + 2 + Math.cos(a) * 16, dy - 48 + Math.sin(a) * 9, 18, 6, a, 0, TAU); ctx.fill(); }
-      ctx.fillStyle = '#6b4226'; ctx.beginPath(); ctx.arc(dx + 2, dy - 46, 4, 0, TAU); ctx.fill();
-    } else if (h < 0.10) { // roca
-      ctx.fillStyle = '#9c8f7a'; ctx.beginPath(); ctx.ellipse(dx, dy, 14, 9, 0.3, 0, TAU); ctx.fill();
-      ctx.fillStyle = '#b8ab94'; ctx.beginPath(); ctx.ellipse(dx - 3, dy - 3, 7, 4, 0.3, 0, TAU); ctx.fill();
-    } else if (h < 0.16) { // estrella de mar
-      ctx.fillStyle = '#e8774a'; ctx.beginPath();
-      for (let k = 0; k < 10; k++) { const a = k / 10 * TAU - Math.PI / 2, rr = k % 2 ? 3 : 8; ctx.lineTo(dx + Math.cos(a) * rr, dy + Math.sin(a) * rr); }
-      ctx.fill();
-    } else if (h < 0.20) { // charco
-      ctx.fillStyle = '#7ec8d8'; ctx.beginPath(); ctx.ellipse(dx, dy, 26, 12, h * 20, 0, TAU); ctx.fill();
-      ctx.fillStyle = 'rgba(255,255,255,.5)'; ctx.beginPath(); ctx.ellipse(dx - 6, dy - 3, 8, 2, h * 20, 0, TAU); ctx.fill();
-    } else if (h < 0.22) { // huesos
-      ctx.strokeStyle = '#f4efe2'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(dx - 9, dy - 6); ctx.lineTo(dx + 9, dy + 6); ctx.moveTo(dx + 9, dy - 6); ctx.lineTo(dx - 9, dy + 6); ctx.stroke();
-    } else if (h < 0.45) {
-      ctx.fillStyle = 'rgba(150,110,60,.25)';
-      for (let k = 0; k < 4; k++) { ctx.beginPath(); ctx.arc(dx + hash(ix + k, iy) * 40 - 20, dy + hash(ix, iy + k) * 40 - 20, 1.6, 0, TAU); ctx.fill(); }
-    }
-  }
-}
+function drawGround(cx, cy, tema) { MDR_ISLAS.drawGround(ctx, tema, cx, cy, vw() / 2, vh() / 2, menuT); }
 
 function drawPlayer(p, t, flash) {
   const r = p.r * 1.25, lookLeft = Math.cos(p.face) < -0.01;
@@ -736,7 +750,7 @@ function drawChest(x, y, t) {
 
 function drawWorld() {
   const p = G.p, t = G.t;
-  drawGround(p.x, p.y);
+  drawGround(p.x, p.y, G.isla.tema);
   // monedas
   for (const c of G.coins) {
     const big = c.v >= 8, mid = c.v >= 3, r = big ? 7 : mid ? 5.5 : 4.5;
@@ -834,6 +848,12 @@ function drawWorld() {
       for (let i = 1; i <= 8; i++) { by = f.y - 320 + i * 40; bx = f.x + (i < 8 ? (hash(f.seed, i) - 0.5) * 40 : 0); ctx.lineTo(bx, by); }
       ctx.stroke();
       ctx.fillStyle = `rgba(255,255,200,${a * 0.5})`; ctx.beginPath(); ctx.arc(f.x, f.y, f.r * (0.6 + k * 0.4), 0, TAU); ctx.fill();
+    } else if (f.k === 'poof') {
+      for (let i = 0; i < 4; i++) {
+        const a = i / 4 * TAU + f.x, d = f.r * (0.2 + k * 0.9);
+        ctx.fillStyle = `rgba(245,240,230,${0.55 * (1 - k)})`;
+        ctx.beginPath(); ctx.arc(f.x + Math.cos(a) * d, f.y + Math.sin(a) * d * 0.7 - k * 10, f.r * (0.45 + k * 0.4), 0, TAU); ctx.fill();
+      }
     } else if (f.k === 'boom') {
       ctx.fillStyle = `rgba(255,${150 - k * 100 | 0},40,${0.7 * (1 - k)})`; ctx.beginPath(); ctx.arc(f.x, f.y, f.r * (0.4 + k * 0.7), 0, TAU); ctx.fill();
       ctx.fillStyle = `rgba(90,80,70,${0.4 * (1 - k)})`; ctx.beginPath(); ctx.arc(f.x, f.y - k * 20, f.r * 0.5 * (0.5 + k), 0, TAU); ctx.fill();
@@ -907,14 +927,18 @@ function drawHUD() {
   }
 }
 
+let frameDt = 0.016;
 function draw() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   ctx.fillStyle = '#ecd8a2'; ctx.fillRect(0, 0, W, H);
   if (!G || state === 'menu' || state === 'select') {
+    const tema = ISLAS[islaSel].tema;
     ctx.setTransform(DPR * S, 0, 0, DPR * S, DPR * W / 2, DPR * H / 2);
     const cx = menuT * 40, cy = menuT * 15;
-    ctx.translate(-cx, -cy); drawGround(cx, cy);
+    ctx.translate(-cx, -cy); drawGround(cx, cy, tema);
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    MDR_ISLAS.overlay(ctx, tema, W, H, menuT); MDR_ISLAS.ambient(ctx, tema, W, H, frameDt, menuT);
+    if (state === 'menu') { const cv = $('#islaPreview'); MDR_ISLAS.drawPreview(cv.getContext('2d'), tema, cv.width, cv.height, menuT, islaSel * 1.7); }
     return;
   }
   const sx = shake > 0 ? rnd(-shake, shake) : 0, sy = shake > 0 ? rnd(-shake, shake) : 0;
@@ -922,6 +946,8 @@ function draw() {
   ctx.translate(-G.p.x, -G.p.y);
   drawWorld();
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  MDR_ISLAS.overlay(ctx, G.isla.tema, W, H, G.t);
+  MDR_ISLAS.ambient(ctx, G.isla.tema, W, H, state === 'play' ? frameDt : 0, G.t);
   // viñeta roja al recibir daño
   if (G.p.hurtT > 0) { ctx.fillStyle = `rgba(200,0,0,${G.p.hurtT})`; ctx.fillRect(0, 0, W, H); }
   drawHUD();
@@ -929,7 +955,7 @@ function draw() {
 
 let last = performance.now();
 function frame(now) {
-  const dt = Math.min(0.033, (now - last) / 1000); last = now;
+  const dt = Math.min(0.033, (now - last) / 1000); last = now; frameDt = dt;
   menuT += dt;
   if (state === 'play' && G) update(dt);
   shake = Math.max(0, shake - dt * 30);
@@ -942,7 +968,21 @@ requestAnimationFrame(frame);
 const show = id => $('#' + id).classList.add('show');
 const hide = id => $('#' + id).classList.remove('show');
 function setTopBtns(v) { $('#topbtns').style.display = v ? 'flex' : 'none'; }
+function renderHome() {
+  const is = ISLAS[islaSel], un = islaUnlocked(is);
+  $('#islaNombre').textContent = is.nombre;
+  $('#islaDesc').textContent = is.descripcion || '';
+  const n = Math.max(1, Math.min(5, Math.round(((is.dificultad || 1) - 1) / 0.5) + 1));
+  $('#islaInfo').innerHTML = `Dificultad <span class="stars">${'★'.repeat(n)}${'☆'.repeat(5 - n)}</span> · Berries ×${is.berries || 1}` + (SAVE.islas[is.id] ? ` · Mejor: ${mmss(SAVE.islas[is.id])}` : '');
+  const lock = $('#islaLock');
+  if (un) lock.classList.remove('on');
+  else { const req = ISLAS.find(i => i.id === is.desbloqueo.isla); lock.innerHTML = `<b>🔒</b>Aguanta ${is.desbloqueo.minutos}:00 en ${req ? req.nombre : is.desbloqueo.isla} para desbloquearla`; lock.classList.add('on'); }
+  $('#bPlay').disabled = !un;
+  $('#islaDots').innerHTML = ISLAS.map((i, k) => `<i class="${k === islaSel ? 'on' : ''} ${islaUnlocked(i) ? '' : 'lock'}"></i>`).join('');
+}
+function moveIsla(d) { islaSel = (islaSel + d + ISLAS.length) % ISLAS.length; SAVE.islaSel = islaSel; saveGame(); renderHome(); snd('ui'); }
 function refreshBest() {
+  renderHome();
   const b = store.get('mdr_best', null);
   $('#best').textContent = b ? `Mayor recompensa: 💰 ${fmt(b.bounty)} (${b.name})` : '';
   $('#gold').textContent = `🪙 ${fmt(SAVE.berries)} Berries` + (SAVE.partidas ? ` · ${SAVE.partidas} partidas` : '');
@@ -1025,6 +1065,7 @@ function buildRegistro() {
     ['⚓', 'Mejoras compradas', S.mejorasCompradas], ['🎁', 'Tesoros', `${Object.keys(SAVE.inv).length} / ${Object.keys(TESOROS).length}`],
     ['📜', 'Misiones', `${SAVE.cobradas.length} / ${MISIONES.length}`]];
   $('#regStats').innerHTML = rows.map(([i, n, v]) => `<div class="st"><span>${i}</span><b>${v}</b><small>${n}</small></div>`).join('');
+  $('#regIslas').innerHTML = ISLAS.map(i => `<div class="st"><span>${islaUnlocked(i) ? '🏝️' : '🔒'}</span><b>${SAVE.islas[i.id] ? mmss(SAVE.islas[i.id]) : '--:--'}</b><small>${i.nombre}</small></div>`).join('');
   const box = $('#bestiario'); box.innerHTML = '';
   for (const k in ETYPES) {
     const n = S.porTipo[k] || 0, cv = document.createElement('canvas'); cv.width = 140; cv.height = 140; cv.style.width = cv.style.height = '70px';
@@ -1131,7 +1172,8 @@ function buildInventario() {
 function startGame(ch) {
   initAudio(); if (AC && AC.state === 'suspended') AC.resume();
   if (!SAVE.stats.piratas.includes(ch.id)) { SAVE.stats.piratas.push(ch.id); saveGame(); }
-  newGame(ch); hide('select'); hide('over'); hide('menu'); setTopBtns(true); state = 'play'; last = performance.now();
+  const isla = (G && state === 'over' && G.isla) || ISLAS[islaSel];
+  newGame(ch, isla); hide('select'); hide('over'); hide('menu'); setTopBtns(true); state = 'play'; last = performance.now();
 }
 function getOptions(n) {
   const opts = [];
@@ -1201,7 +1243,10 @@ function endGame(won) {
   const best = store.get('mdr_best', null);
   const record = !best || G.bounty > best.bounty;
   if (record) store.set('mdr_best', { bounty: G.bounty, name: G.ch.name });
-  const base = G.kills * PROG.berriesPorDerribo + G.t * PROG.berriesPorSegundo + G.bosses * PROG.berriesPorJefe + (won ? PROG.berriesPorVictoria : 0);
+  const unlockedBefore = ISLAS.filter(islaUnlocked).map(i => i.id);
+  SAVE.islas[G.isla.id] = Math.max(SAVE.islas[G.isla.id] || 0, Math.floor(G.t));
+  const nuevas = ISLAS.filter(i => islaUnlocked(i) && !unlockedBefore.includes(i.id));
+  const base = (G.isla.berries || 1) * G.kills * PROG.berriesPorDerribo + (G.isla.berries || 1) * (G.t * PROG.berriesPorSegundo + G.bosses * PROG.berriesPorJefe + (won ? PROG.berriesPorVictoria : 0));
   G.gold = Math.floor(base * (1 + pm('codicia') + ib('berries') + rs('berries')));
   SAVE.berries += G.gold; SAVE.partidas++; if (won) SAVE.victorias++;
   const S = SAVE.stats;
@@ -1217,13 +1262,17 @@ function endGame(won) {
   $('#oName').textContent = G.ch.name;
   $('#oBounty').textContent = '💰 ' + fmt(G.bounty);
   $('#oStats').textContent = `Tiempo ${mmss(G.t)} · Nivel ${G.p.lvl} · Derribados ${fmt(G.kills)} · Jefes ${G.bosses}`;
-  $('#oMsg').textContent = (won ? '¡Sobreviviste 10 minutos! Eres la leyenda de los mares.' : 'Has caído… pero tu leyenda crece.') + (record ? ' ¡Nueva recompensa récord!' : '');
+  $('#oMsg').textContent = (nuevas.length ? `🏝️ ¡Nueva isla desbloqueada: ${nuevas.map(i => i.nombre).join(', ')}! ` : '') + (won ? '¡Sobreviviste 10 minutos! Eres la leyenda de los mares.' : 'Has caído… pero tu leyenda crece.') + (record ? ' ¡Nueva recompensa récord!' : '');
   const ml_ = misionesListas();
   $('#oGold').textContent = `+${fmt(G.gold)} 🪙 Berries · Total: ${fmt(SAVE.berries)}` + (ml_ ? ` · 📜 ¡${ml_} misión${ml_ > 1 ? 'es' : ''} por cobrar!` : '');
   setTimeout(() => show('over'), won ? 200 : 500);
 }
 
-$('#bPlay').onclick = () => { initAudio(); buildSelect(); hide('menu'); show('select'); state = 'select'; };
+$('#bPlay').onclick = () => { initAudio(); if (!islaUnlocked(ISLAS[islaSel])) return; snd('ui'); buildSelect(); hide('menu'); show('select'); state = 'select'; };
+$('#islaPrev').onclick = () => { initAudio(); moveIsla(-1); };
+$('#islaNext').onclick = () => { initAudio(); moveIsla(1); };
+$('#bAyuda').onclick = () => { initAudio(); openPanel('ayuda', 'menu', () => {}); };
+$('#ayuda .back').onclick = () => closePanel('ayuda');
 $('#bBack').onclick = () => { hide('select'); show('menu'); state = 'menu'; refreshBest(); };
 $('#bShop').onclick = () => { initAudio(); openShop('menu'); };
 $('#bMis').onclick = () => { initAudio(); openPanel('missions', 'menu', buildMissions); };
@@ -1252,6 +1301,8 @@ addEventListener('keydown', e => {
   keys.add(k);
   if ((k === 'p' || k === 'escape') && state === 'play') pauseGame();
   else if ((k === 'p' || k === 'escape') && state === 'pause') resumeGame();
+  if (state === 'menu' && (k === 'arrowleft' || k === 'a')) moveIsla(-1);
+  if (state === 'menu' && (k === 'arrowright' || k === 'd')) moveIsla(1);
   if (state === 'levelup' && /^[1-4]$/.test(k)) { const o = curOpts[+k - 1]; if (o) chooseOpt(o); }
 });
 addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));

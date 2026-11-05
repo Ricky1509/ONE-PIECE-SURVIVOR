@@ -119,6 +119,41 @@
   .slot{width:110px;min-height:92px;border:3px dashed rgba(255,255,255,.4);border-radius:12px;background:rgba(0,0,0,.25);color:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:6px}
   .slot .si{font-size:30px}.slot small{font-size:12px;font-weight:700}
   .slot:not(:disabled){border-style:solid}
+  .ov.home{background:radial-gradient(ellipse at center,rgba(5,18,32,.15),rgba(5,18,32,.7));padding:12px 14px}
+  .home-top{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:1100px;gap:10px}
+  .home-title{font-family:'Pirata One',serif;font-size:clamp(30px,5vw,50px);color:var(--gold);text-shadow:0 3px 0 #000;line-height:1}
+  .goldpill{background:rgba(0,0,0,.6);border:2px solid var(--gold);border-radius:20px;padding:6px 14px;font-weight:900;color:#ffe08a;white-space:nowrap}
+  .home-grid{display:grid;grid-template-columns:150px 1fr 150px;gap:18px;width:100%;max-width:1100px;align-items:center;margin:10px 0}
+  .home-side{display:flex;flex-direction:column;gap:12px}
+  .home .mbtn{background:rgba(27,20,16,.88);padding:12px 4px}
+  .home-center{display:flex;flex-direction:column;align-items:center;text-align:center;min-width:0}
+  .isla-nav{display:flex;align-items:center;gap:10px;width:100%;justify-content:center}
+  .isla-card{position:relative;flex:1;max-width:560px;border:4px solid var(--gold);border-radius:22px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.55)}
+  .isla-card canvas{display:block;width:100%;height:auto}
+  .isla-lock{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(0,0,0,.6);font-weight:900;font-size:16px;padding:14px;text-shadow:0 2px 0 #000}
+  .isla-lock.on{display:flex}
+  .isla-lock b{font-size:44px}
+  .arrow{width:48px;height:48px;border-radius:50%;border:3px solid #000;background:linear-gradient(180deg,#ffd95e,#e0a516);font-size:20px;cursor:pointer;box-shadow:0 3px 0 #000;flex:none;color:#2a1606}
+  .arrow:active{transform:translateY(2px);box-shadow:0 1px 0 #000}
+  .isla-nombre{font-family:'Pirata One',serif;font-size:clamp(32px,5vw,46px);color:#fff;text-shadow:0 3px 0 #000;margin-top:10px;line-height:1}
+  .isla-desc{opacity:.92;max-width:540px;margin-top:6px;text-shadow:0 1px 0 #000}
+  .isla-info{margin:6px 0;font-weight:900;color:#ffe08a;font-size:14px;text-shadow:0 1px 0 #000}
+  .isla-info .stars{color:#ffb347;letter-spacing:1px}
+  .isla-dots{display:flex;gap:6px;margin:4px 0 6px}
+  .isla-dots i{width:11px;height:11px;border-radius:50%;background:rgba(255,255,255,.35);border:2px solid #000}
+  .isla-dots i.on{background:var(--gold);transform:scale(1.25)}
+  .isla-dots i.lock:not(.on){background:#555}
+  #bPlay:disabled{filter:grayscale(1);opacity:.6;cursor:not-allowed}
+  .home-best{color:var(--gold);font-weight:700;font-size:14px;text-shadow:0 2px 0 #000;text-align:center}
+  .help{text-align:left;line-height:1.5;font-size:15px}
+  @media (max-width:760px){
+    .home-grid{grid-template-columns:1fr;gap:10px}
+    .home-center{order:-1}
+    .home-side{flex-direction:row;gap:8px}
+    .home-side .mbtn{flex:1;padding:8px 2px}
+    .home-top{flex-direction:column;gap:6px}
+    .arrow{width:40px;height:40px;font-size:16px}
+  }
   @media (max-width:520px){
     .loots{grid-template-columns:1fr 1fr}
     .regstats{grid-template-columns:repeat(3,1fr)}
@@ -143,20 +178,52 @@
 <canvas id="c"></canvas>
 <div id="topbtns" style="display:none"><button id="bPause" aria-label="Pausa">⏸</button><button id="bMute" aria-label="Sonido">🔊</button></div>
 
-<div id="menu" class="ov show"><div class="panel">
-  <h1>Mar de Recompensas</h1>
-  <p class="sub">Tu tripulación ha naufragado en la Isla Calavera. La Armada y los monstruos del mar vienen a por ti. <b>Aguanta 10 minutos</b> y tu recompensa será legendaria.</p>
-  <button id="bPlay" class="big">Zarpar</button>
-  <div class="menu-grid">
-    <button id="bShop" class="mbtn">⚓<span>Astillero</span></button>
-    <button id="bCofre" class="mbtn">🎁<span>Cofre</span></button>
-    <button id="bInv" class="mbtn">🎒<span>Inventario</span></button>
-    <button id="bMis" class="mbtn">📜<span>Misiones</span><b id="misBadge" class="badge"></b></button>
-    <button id="bReg" class="mbtn">📖<span>Registro</span></button>
+<div id="menu" class="ov show home">
+  <div class="home-top">
+    <div class="home-title">Mar de Recompensas</div>
+    <div id="gold" class="goldpill"></div>
   </div>
-  <div id="gold"></div>
-  <div id="best"></div>
-  <div class="hint">Mover: WASD / flechas, o arrastra el dedo en pantalla<br>Los ataques son automáticos · P / Esc = pausa</div>
+  <div class="home-grid">
+    <div class="home-side">
+      <button id="bShop" class="mbtn">⚓<span>Astillero</span></button>
+      <button id="bCofre" class="mbtn">🎁<span>Cofre</span></button>
+      <button id="bInv" class="mbtn">🎒<span>Inventario</span></button>
+    </div>
+    <div class="home-center">
+      <div class="isla-nav">
+        <button id="islaPrev" class="arrow" aria-label="Isla anterior">◀</button>
+        <div class="isla-card">
+          <canvas id="islaPreview" width="560" height="340"></canvas>
+          <div id="islaLock" class="isla-lock"></div>
+        </div>
+        <button id="islaNext" class="arrow" aria-label="Isla siguiente">▶</button>
+      </div>
+      <div id="islaNombre" class="isla-nombre"></div>
+      <div id="islaDesc" class="isla-desc"></div>
+      <div id="islaInfo" class="isla-info"></div>
+      <div id="islaDots" class="isla-dots"></div>
+      <button id="bPlay" class="big">Zarpar</button>
+    </div>
+    <div class="home-side">
+      <button id="bMis" class="mbtn">📜<span>Misiones</span><b id="misBadge" class="badge"></b></button>
+      <button id="bReg" class="mbtn">📖<span>Registro</span></button>
+      <button id="bAyuda" class="mbtn">❔<span>Cómo jugar</span></button>
+    </div>
+  </div>
+  <div id="best" class="home-best"></div>
+</div>
+
+<div id="ayuda" class="ov"><div class="panel">
+  <h2>Cómo jugar</h2>
+  <div class="help">
+    <p>🕹️ <b>Mover:</b> WASD / flechas, o arrastra el dedo en la pantalla.</p>
+    <p>⚔️ <b>Atacar:</b> automático. Recoge monedas para subir de nivel y elige mejoras.</p>
+    <p>🏝️ <b>Islas:</b> aguanta 5 minutos en una isla para desbloquear la siguiente. Cada isla es más difícil y da más Berries.</p>
+    <p>🍈 <b>Frutas de poder:</b> caen de los enemigos y dan poderes durante unos segundos.</p>
+    <p>🪙 <b>Berries:</b> se ganan al terminar cada partida. Úsalos en el Astillero, el Cofre y para desbloquear piratas.</p>
+    <p>⏸️ <b>Pausa:</b> P / Esc o el botón de arriba a la derecha.</p>
+  </div>
+  <button class="big back">Volver</button>
 </div></div>
 
 <div id="select" class="ov"><div class="panel wide">
@@ -186,6 +253,8 @@
 <div id="registro" class="ov"><div class="panel wide">
   <h2>Registro</h2>
   <div id="regStats" class="regstats"></div>
+  <h3>Islas (mejor tiempo)</h3>
+  <div id="regIslas" class="regstats"></div>
   <h3>Bestiario</h3>
   <div id="bestiario" class="bestiario"></div>
   <h3>Frutas de poder</h3>
@@ -243,6 +312,7 @@
 
 <script src="js/config.js"></script>
 <script src="js/dibujo.js"></script>
+<script src="js/islas.js"></script>
 <script src="js/juego.js"></script>
 <script>
   // Modo app instalable (PWA): solo funciona servido por https o localhost

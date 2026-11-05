@@ -30,6 +30,27 @@ window.MDR_CONFIG = {
   duracionMinutos: 10,
 
   // ---------------------------------------------------------------
+  //  ISLAS (mapas). tema: playa | jungla | desierto | nieve | volcan | fantasma
+  //  dificultad: multiplica la vida de los enemigos (y la mitad del exceso al daño)
+  //  berries: multiplica los Berries ganados
+  //  desbloqueo: { isla, minutos } → aguantar esos minutos en esa isla
+  // ---------------------------------------------------------------
+  islas: [
+    { id: 'calavera',   nombre: 'Isla Calavera',        tema: 'playa',    dificultad: 1.0, berries: 1.0,
+      descripcion: 'La playa tropical donde naufragó tu tripulación. Cangrejos y soldados de la Armada patrullan la orilla.' },
+    { id: 'esmeralda',  nombre: 'Jungla Esmeralda',     tema: 'jungla',   dificultad: 1.3, berries: 1.25, desbloqueo: { isla: 'calavera', minutos: 5 },
+      descripcion: 'Una selva espesa donde la Armada busca un tesoro perdido entre árboles gigantes.' },
+    { id: 'dunas',      nombre: 'Isla de las Dunas',    tema: 'desierto', dificultad: 1.6, berries: 1.5,  desbloqueo: { isla: 'esmeralda', minutos: 5 },
+      descripcion: 'Un mar de arena bajo un sol que no perdona. Dicen que una pirámide esconde un oasis.' },
+    { id: 'escarcha',   nombre: 'Isla Escarcha',        tema: 'nieve',    dificultad: 2.0, berries: 1.8,  desbloqueo: { isla: 'dunas', minutos: 5 },
+      descripcion: 'Montañas heladas y ventiscas eternas. Solo los más duros sobreviven al frío.' },
+    { id: 'ceniza',     nombre: 'Volcán Ceniza',        tema: 'volcan',   dificultad: 2.5, berries: 2.2,  desbloqueo: { isla: 'escarcha', minutos: 5 },
+      descripcion: 'La tierra arde bajo tus botas. Ríos de lava y lluvia de brasas.' },
+    { id: 'naufragios', nombre: 'Mar de los Naufragios', tema: 'fantasma', dificultad: 3.0, berries: 2.7,  desbloqueo: { isla: 'ceniza', minutos: 5 },
+      descripcion: 'Un cementerio de barcos envuelto en niebla, iluminado por faroles que nadie enciende.' },
+  ],
+
+  // ---------------------------------------------------------------
   //  PERSONAJES JUGABLES
   //  arma: sable | pistola | rayo | ancla | canon | fuego | hielo | arpon | tambor | viento
   //  bonus: vida, recarga, area, velocidad (multiplicadores) y armadura (suma)
@@ -195,7 +216,7 @@ window.MDR_CONFIG = {
   // ---------------------------------------------------------------
   //  MISIONES (recompensa en Berries; se cobran en el menú Misiones)
   //  tipo: derribos | tiempo (segundos) | victorias | jefe:<id> | nivel
-  //        | frutas | piratas | mejoras | armas | recompensa | tiradas | tesoros
+  //        | frutas | piratas | mejoras | armas | recompensa | tiradas | tesoros | islas
   // ---------------------------------------------------------------
   misiones: [
     { id: 'k1', nombre: 'Primera sangre',         descripcion: 'Derrota 100 enemigos en total',           tipo: 'derribos', meta: 100,   recompensa: 100 },
@@ -219,6 +240,8 @@ window.MDR_CONFIG = {
     { id: 'a1', nombre: 'Arsenal flotante',       descripcion: 'Ten 6 armas a la vez en una partida',     tipo: 'armas',    meta: 6,     recompensa: 400 },
     { id: 'g1', nombre: 'Buscador de tesoros',    descripcion: 'Abre el Cofre del Tesoro por primera vez', tipo: 'tiradas', meta: 1,  recompensa: 150 },
     { id: 'g2', nombre: 'Coleccionista',          descripcion: 'Consigue 10 tesoros distintos',           tipo: 'tesoros',  meta: 10,    recompensa: 1000 },
+    { id: 'i1', nombre: 'Explorador',             descripcion: 'Desbloquea 3 islas',                      tipo: 'islas',    meta: 3,     recompensa: 500 },
+    { id: 'i2', nombre: 'Cartógrafo de los mares', descripcion: 'Desbloquea las 6 islas',                 tipo: 'islas',    meta: 6,     recompensa: 3000 },
     { id: 'r1', nombre: 'Se busca',               descripcion: 'Consigue 50.000.000 de recompensa en una partida', tipo: 'recompensa', meta: 5e7, recompensa: 700 },
   ],
 

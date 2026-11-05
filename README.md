@@ -17,6 +17,7 @@ npx serve .
 
 ## Contenido
 
+- **6 islas** con temática propia (playa, jungla, desierto, nieve, volcán y cementerio de barcos): suelo, decoración, clima y tono de color distintos, más dificultad y más Berries en cada una. Se desbloquean aguantando 5 minutos en la anterior y se eligen en el centro del menú principal
 - **8 piratas:** Capitana Coral (sable), Bram el Certero (pistola), Lumi Brújula (rayos), Barbagris (ancla), Bruno el Artillero (cañón), Nieves la Cartógrafa (hielo), Marea la Arponera (arpón) y Kai el Tamborilero (tambor). Los 6 últimos se desbloquean con Berries
 - **10 armas** (nivel 1–5): Sable, Pistola, Rayo de Tormenta, Ancla Giratoria, Cañonazo, Fruta Ígnea, Fruta Glacial, Arpón, Tambor de Guerra y Fruta Vendaval
 - **Mejoras con rareza** al subir de nivel (Común, Raro, Épico, Legendario): experiencia, daño, vida, velocidad, recarga, área, recogida, armadura, regeneración y Berries; se acumulan durante la partida
@@ -40,6 +41,7 @@ sw.js                 caché para jugar sin conexión (sube VERSION al publicar 
 icons/                iconos de la app
 js/config.js          ⚙️ personajes, enemigos, jefes, armas y sprites (editable)
 js/dibujo.js          dibujos hechos con código (se usan si falta un sprite)
+js/islas.js           suelo, decoración, vista previa, clima y tono de cada isla
 js/juego.js           lógica del juego
 sprites/              imágenes PNG de personajes y enemigos
 tools/generar-sprites.js  genera los sprites de ejemplo desde js/dibujo.js
