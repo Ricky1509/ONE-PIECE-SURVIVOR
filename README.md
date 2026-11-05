@@ -126,3 +126,12 @@ npm install
 npm start      # probar en una ventana
 npm run dist   # crear dist/FaroDeTormentas.exe (en Windows)
 ```
+
+## Desarrollo con Claude Code (Game Studios)
+
+El repositorio incluye [Claude Code Game Studios](https://github.com/Donchitos/Claude-Code-Game-Studios) v1.2.0 (licencia MIT): 49 agentes (diseño, arte, audio, QA, producción…), 74 comandos y hooks de seguridad en `.claude/`. Se activa al abrir Claude Code **en la carpeta del repositorio**.
+
+- `/adopt`: primera vez; analiza el juego ya hecho y genera los documentos que falten.
+- `/help`: dice qué paso toca ahora.
+- Ejemplos útiles: `/brainstorm`, `/balance-check`, `/playtest-report`, `/team-level`, `/localize`, `/release-checklist`.
+- El juego no usa Godot/Unity/Unreal: no hace falta `/setup-engine`; `CLAUDE.md` ya describe la tecnología real (JavaScript + Canvas).
