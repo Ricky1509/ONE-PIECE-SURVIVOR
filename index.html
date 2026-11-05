@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Mar de Recompensas</title>
+<meta name="theme-color" content="#0b2a47">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{--gold:#f6c945;--wood:#3b2414;--ink:#1b1410;--sea:#0d3b66;--paper:#f3e2b3}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;overflow:hidden;background:#0b2a47;font-family:Nunito,system-ui,sans-serif;color:#fff;user-select:none;-webkit-user-select:none;touch-action:none}
+  canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+  #topbtns{position:fixed;top:18px;right:10px;display:flex;gap:6px;z-index:5}
+  #topbtns button{width:40px;height:40px;border-radius:10px;border:2px solid rgba(246,201,69,.6);background:rgba(27,20,16,.65);color:#fff;font-size:18px;cursor:pointer}
+  .ov{position:fixed;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(5,18,32,.72);z-index:10;padding:16px;overflow:auto}
+  .ov.show{display:flex}
+  /* centrado que permite hacer scroll cuando el contenido es más alto que la pantalla */
+  .ov{justify-content:flex-start}
+  .ov>:first-child{margin-top:auto}
+  .ov>:last-child{margin-bottom:auto}
+  .panel{background:linear-gradient(180deg,#4a2e1a,#2e1b0f);border:3px solid var(--gold);border-radius:18px;padding:22px 24px;max-width:460px;width:100%;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+  .panel.wide{max-width:900px}
+  h1,h2{font-family:'Pirata One',serif;font-weight:400;margin:0 0 6px;color:var(--gold);text-shadow:0 3px 0 #000}
+  h1{font-size:clamp(44px,9vw,72px);line-height:1}
+  h2{font-size:clamp(30px,6vw,42px)}
+  .sub{opacity:.9;margin:8px 0 18px;line-height:1.4}
+  .hint{font-size:13px;opacity:.7;margin-top:16px;line-height:1.6}
+  button.big{font-family:'Pirata One',serif;font-size:28px;padding:10px 34px;border-radius:12px;border:3px solid #000;background:linear-gradient(180deg,#ffd95e,#e0a516);color:#2a1606;cursor:pointer;box-shadow:0 4px 0 #000;margin:6px}
+  button.big:active{transform:translateY(3px);box-shadow:0 1px 0 #000}
+  button.ghost{font-family:Nunito;font-weight:700;font-size:15px;padding:8px 18px;border-radius:10px;border:2px solid rgba(255,255,255,.4);background:transparent;color:#fff;cursor:pointer;margin:8px}
+  #best{margin-top:10px;color:var(--gold);font-weight:700}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:14px 0}
+  .card{position:relative;background:linear-gradient(180deg,#f7e8bd,#e2c98a);color:var(--ink);border:3px solid #000;border-radius:14px;padding:12px 10px 14px;cursor:pointer;font-family:Nunito;text-align:center;box-shadow:0 4px 0 #000;transition:transform .08s}
+  .card:hover{transform:translateY(-3px)}
+  .card:disabled{opacity:.6}
+  .card .ic{font-size:40px;line-height:1.1}
+  .card .nm{font-family:'Pirata One',serif;font-size:24px;margin-top:4px}
+  .card .lv{font-weight:900;font-size:12px;color:#a2340f;letter-spacing:.5px;text-transform:uppercase}
+  .card .ds{font-size:14px;margin-top:6px;line-height:1.3}
+  .card .key{position:absolute;top:6px;left:8px;font-size:11px;font-weight:900;opacity:.45}
+  .card canvas{display:block;margin:0 auto}
+  #luSub{opacity:.8;font-size:14px}
+  #pStats{text-align:left;font-size:14px;line-height:1.7;margin:10px 0 16px;background:rgba(0,0,0,.25);padding:10px 14px;border-radius:10px}
+  .poster{background:var(--paper);background-image:radial-gradient(circle at 20% 15%,rgba(120,80,30,.18),transparent 40%),radial-gradient(circle at 80% 85%,rgba(120,80,30,.22),transparent 45%);color:#3a2412;width:min(320px,90vw);padding:18px 18px 16px;border-radius:4px;box-shadow:0 14px 40px rgba(0,0,0,.6);text-align:center;transform:rotate(-1.5deg);border:2px solid #7a5a2e}
+  .wanted{font-family:'Pirata One',serif;font-size:58px;line-height:.95;letter-spacing:2px}
+  .dora{font-family:'Pirata One',serif;font-size:18px;letter-spacing:3px;margin-bottom:8px}
+  #portrait{background:#d9c18c;border:3px solid #3a2412;width:100%;max-width:240px;height:auto;aspect-ratio:220/180}
+  .pname{font-family:'Pirata One',serif;font-size:30px;margin-top:6px}
+  .pbounty{font-family:'Pirata One',serif;font-size:32px;color:#7a1d0c}
+  .pstats{font-size:13px;font-weight:700;opacity:.8;margin-top:4px}
+  #oMsg{margin:16px 0 4px;font-weight:900;color:var(--gold);text-align:center;font-size:18px;text-shadow:0 2px 0 #000}
+  .row{display:flex;flex-wrap:wrap;justify-content:center;align-items:center}
+  button.big.alt{background:linear-gradient(180deg,#6fc3ff,#2b7bbf);color:#06223a}
+  #gold,.goldline{margin-top:10px;color:#ffe08a;font-weight:900;font-size:17px;text-shadow:0 2px 0 #000}
+  .card .cost{margin-top:8px;font-weight:900;font-size:15px;color:#2a6b1f}
+  .card.poor .cost{color:#a2340f}
+  .card.locked canvas{filter:grayscale(1) brightness(.6)}
+  .card.poor{cursor:not-allowed}
+  .card.maxed{opacity:.7;cursor:default}
+  .card.maxed .cost{color:#7a5a2e}
+  .card .pips{display:flex;justify-content:center;gap:4px;margin-top:6px}
+  .card .pips i{width:12px;height:12px;border-radius:50%;border:2px solid #3a2412;background:transparent}
+  .card .pips i.on{background:#e0a516}
+  #upg{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+  #upg .card .ic{font-size:32px}
+  #upg .card .nm{font-size:20px}
+  h3{font-family:'Pirata One',serif;font-weight:400;color:var(--gold);font-size:24px;margin:16px 0 6px;text-shadow:0 2px 0 #000}
+  .menu-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 4px}
+  .mbtn{position:relative;background:rgba(0,0,0,.3);border:2px solid var(--gold);border-radius:12px;color:#fff;font-size:26px;padding:8px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+  .mbtn span{font-family:'Pirata One',serif;font-size:19px;color:#ffe08a}
+  .mbtn:active{transform:translateY(2px)}
+  .badge{position:absolute;top:-8px;right:-8px;background:#e74c3c;color:#fff;border-radius:12px;padding:2px 8px;font:900 13px Nunito,sans-serif;display:none;border:2px solid #000}
+  .badge.on{display:block}
+  #misList{text-align:left;max-width:640px;margin:0 auto}
+  .mis{display:flex;gap:10px;align-items:center;background:linear-gradient(180deg,#f7e8bd,#e2c98a);color:var(--ink);border:2px solid #000;border-radius:12px;padding:10px 12px;margin:8px 0}
+  .mis.ready{box-shadow:0 0 0 3px #f6c945,0 0 18px #f6c945}
+  .mis.claimed{opacity:.55}
+  .mis .mi{font-size:28px}
+  .mis .mb{flex:1;min-width:0}
+  .mis .mn{font-family:'Pirata One',serif;font-size:20px}
+  .mis .md{font-size:13px}
+  .mis .bar{height:8px;background:rgba(0,0,0,.18);border-radius:4px;overflow:hidden;margin-top:5px}
+  .mis .bar i{display:block;height:100%;background:linear-gradient(90deg,#2a9d3f,#7bd389)}
+  .mis .mp{font-size:11px;font-weight:900;opacity:.7;margin-top:2px}
+  .claim{font:900 14px Nunito,sans-serif;padding:8px 10px;border-radius:10px;border:2px solid #000;background:linear-gradient(180deg,#ffd95e,#e0a516);cursor:pointer;white-space:nowrap}
+  .claim:disabled{background:#cbb98f;opacity:.7;cursor:default}
+  .regstats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+  .regstats .st{background:rgba(0,0,0,.28);border-radius:10px;padding:8px;display:flex;flex-direction:column;align-items:center}
+  .regstats .st span{font-size:22px}.regstats .st b{font-size:18px;color:#ffe08a}.regstats .st small{opacity:.75;font-size:12px}
+  .bestiario{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px}
+  .beast{background:linear-gradient(180deg,#f7e8bd,#e2c98a);color:var(--ink);border:2px solid #000;border-radius:10px;padding:6px;display:flex;flex-direction:column;align-items:center}
+  .beast.unknown canvas{filter:brightness(0) opacity(.55)}
+  .beast .bn{font-family:'Pirata One',serif;font-size:15px;text-align:center}.beast .bc{font-size:11px;font-weight:900;opacity:.7}
+  .frutas{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;text-align:left}
+  .fruit-row{display:flex;gap:8px;align-items:center;background:rgba(0,0,0,.28);border-radius:10px;padding:6px 10px}
+  .rates{font-size:13px;opacity:.9;margin:6px 0;line-height:1.6}
+  .loots{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+  .card.loot{border-width:4px;cursor:pointer}
+  .card.loot .ic{font-size:34px}
+  .card.loot .nm{font-size:19px}
+  .card.loot .rz{font-weight:900;font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+  .card.loot .tag{margin-top:6px;font-weight:900;font-size:13px;color:#2a6b1f}
+  .card.loot.unknown{opacity:.5;cursor:default}
+  .card.loot.equipped{box-shadow:0 4px 0 #000,0 0 0 3px #2ecc71}
+  #pullRes .card.loot{animation:pop .45s both}
+  @keyframes pop{0%{transform:scale(.3) rotateY(90deg);opacity:0}70%{transform:scale(1.08) rotateY(0)}100%{transform:scale(1);opacity:1}}
+  .card.rar-legendario{background:linear-gradient(180deg,#fff3c4,#f5c45e);box-shadow:0 4px 0 #000,0 0 18px #f39c12}
+  .card.rar-epico{background:linear-gradient(180deg,#f1e4fb,#d7b8ef)}
+  .card.rar-raro{background:linear-gradient(180deg,#e3f1fb,#b9d9f2)}
+  .slots{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  .slot{width:110px;min-height:92px;border:3px dashed rgba(255,255,255,.4);border-radius:12px;background:rgba(0,0,0,.25);color:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:6px}
+  .slot .si{font-size:30px}.slot small{font-size:12px;font-weight:700}
+  .slot:not(:disabled){border-style:solid}
+  .ov.home{background:radial-gradient(ellipse at center,rgba(5,18,32,.15),rgba(5,18,32,.7));padding:12px 14px}
+  .home-top{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:1100px;gap:10px}
+  .home-title{font-family:'Pirata One',serif;font-size:clamp(30px,5vw,50px);color:var(--gold);text-shadow:0 3px 0 #000;line-height:1}
+  .goldpill{background:rgba(0,0,0,.6);border:2px solid var(--gold);border-radius:20px;padding:6px 14px;font-weight:900;color:#ffe08a;white-space:nowrap}
+  .home-grid{display:grid;grid-template-columns:150px 1fr 150px;gap:18px;width:100%;max-width:1100px;align-items:center;margin:10px 0}
+  .home-side{display:flex;flex-direction:column;gap:12px}
+  .home .mbtn{background:rgba(27,20,16,.88);padding:12px 4px}
+  .home-center{display:flex;flex-direction:column;align-items:center;text-align:center;min-width:0}
+  .isla-nav{display:flex;align-items:center;gap:10px;width:100%;justify-content:center}
+  .isla-card{position:relative;flex:1;max-width:560px;border:4px solid var(--gold);border-radius:22px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.55)}
+  .isla-card canvas{display:block;width:100%;height:auto}
+  .isla-lock{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(0,0,0,.6);font-weight:900;font-size:16px;padding:14px;text-shadow:0 2px 0 #000}
+  .isla-lock.on{display:flex}
+  .isla-lock b{font-size:44px}
+  .arrow{width:48px;height:48px;border-radius:50%;border:3px solid #000;background:linear-gradient(180deg,#ffd95e,#e0a516);font-size:20px;cursor:pointer;box-shadow:0 3px 0 #000;flex:none;color:#2a1606}
+  .arrow:active{transform:translateY(2px);box-shadow:0 1px 0 #000}
+  .isla-nombre{font-family:'Pirata One',serif;font-size:clamp(32px,5vw,46px);color:#fff;text-shadow:0 3px 0 #000;margin-top:10px;line-height:1}
+  .isla-desc{opacity:.92;max-width:540px;margin-top:6px;text-shadow:0 1px 0 #000}
+  .isla-info{margin:6px 0;font-weight:900;color:#ffe08a;font-size:14px;text-shadow:0 1px 0 #000}
+  .isla-info .stars{color:#ffb347;letter-spacing:1px}
+  .isla-dots{display:flex;gap:6px;margin:4px 0 6px}
+  .isla-dots i{width:11px;height:11px;border-radius:50%;background:rgba(255,255,255,.35);border:2px solid #000}
+  .isla-dots i.on{background:var(--gold);transform:scale(1.25)}
+  .isla-dots i.lock:not(.on){background:#555}
+  #bPlay:disabled{filter:grayscale(1);opacity:.6;cursor:not-allowed}
+  .home-best{color:var(--gold);font-weight:700;font-size:14px;text-shadow:0 2px 0 #000;text-align:center}
+  .help{text-align:left;line-height:1.5;font-size:15px}
+  @media (max-width:760px){
+    .home-grid{grid-template-columns:1fr;gap:10px}
+    .home-center{order:-1}
+    .home-side{flex-direction:row;gap:8px}
+    .home-side .mbtn{flex:1;padding:8px 2px}
+    .home-top{flex-direction:column;gap:6px}
+    .arrow{width:40px;height:40px;font-size:16px}
+  }
+  @media (max-width:520px){
+    .loots{grid-template-columns:1fr 1fr}
+    .regstats{grid-template-columns:repeat(3,1fr)}
+    .mbtn span{font-size:16px}
+    #upg{grid-template-columns:1fr 1fr}
+    #upg .card{padding:8px 6px 10px}
+    #upg .card .nm{font-size:17px}
+    #upg .card .ds{font-size:12px}
+    .panel{padding:16px 14px}
+    .cards{gap:8px;margin:10px 0}
+    #opts .card{display:grid;grid-template-columns:52px 1fr;text-align:left;align-items:center;padding:10px 12px;column-gap:10px}
+    #opts .card .ic{grid-row:1/4;font-size:34px;text-align:center}
+    #opts .card .nm{font-size:21px;margin:0}
+    #opts .card .ds{margin-top:2px}
+    #opts .card .key{display:none}
+    #chars{grid-template-columns:1fr 1fr}
+    #chars .card .ds{font-size:12px}
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="topbtns" style="display:none"><button id="bPause" aria-label="Pausa">⏸</button><button id="bMute" aria-label="Sonido">🔊</button></div>
+
+<div id="menu" class="ov show home">
+  <div class="home-top">
+    <div class="home-title">Mar de Recompensas</div>
+    <div id="gold" class="goldpill"></div>
+  </div>
+  <div class="home-grid">
+    <div class="home-side">
+      <button id="bShop" class="mbtn">⚓<span>Astillero</span></button>
+      <button id="bCofre" class="mbtn">🎁<span>Cofre</span></button>
+      <button id="bInv" class="mbtn">🎒<span>Inventario</span></button>
+    </div>
+    <div class="home-center">
+      <div class="isla-nav">
+        <button id="islaPrev" class="arrow" aria-label="Isla anterior">◀</button>
+        <div class="isla-card">
+          <canvas id="islaPreview" width="560" height="340"></canvas>
+          <div id="islaLock" class="isla-lock"></div>
+        </div>
+        <button id="islaNext" class="arrow" aria-label="Isla siguiente">▶</button>
+      </div>
+      <div id="islaNombre" class="isla-nombre"></div>
+      <div id="islaDesc" class="isla-desc"></div>
+      <div id="islaInfo" class="isla-info"></div>
+      <div id="islaDots" class="isla-dots"></div>
+      <button id="bPlay" class="big">Zarpar</button>
+    </div>
+    <div class="home-side">
+      <button id="bMis" class="mbtn">📜<span>Misiones</span><b id="misBadge" class="badge"></b></button>
+      <button id="bReg" class="mbtn">📖<span>Registro</span></button>
+      <button id="bAyuda" class="mbtn">❔<span>Cómo jugar</span></button>
+    </div>
+  </div>
+  <div id="best" class="home-best"></div>
+</div>
+
+<div id="ayuda" class="ov"><div class="panel">
+  <h2>Cómo jugar</h2>
+  <div class="help">
+    <p>🕹️ <b>Mover:</b> WASD / flechas, o arrastra el dedo en la pantalla.</p>
+    <p>⚔️ <b>Atacar:</b> automático. Recoge monedas para subir de nivel y elige mejoras.</p>
+    <p>🏝️ <b>Islas:</b> aguanta 5 minutos en una isla para desbloquear la siguiente. Cada isla es más difícil y da más Berries.</p>
+    <p>🍈 <b>Frutas de poder:</b> caen de los enemigos y dan poderes durante unos segundos.</p>
+    <p>🪙 <b>Berries:</b> se ganan al terminar cada partida. Úsalos en el Astillero, el Cofre y para desbloquear piratas.</p>
+    <p>⏸️ <b>Pausa:</b> P / Esc o el botón de arriba a la derecha.</p>
+  </div>
+  <button class="big back">Volver</button>
+</div></div>
+
+<div id="select" class="ov"><div class="panel wide">
+  <h2>Elige a tu pirata</h2>
+  <div id="selGold" class="goldline"></div>
+  <div id="chars" class="cards"></div>
+  <button id="bBack" class="ghost">Volver</button>
+</div></div>
+
+<div id="shop" class="ov"><div class="panel wide">
+  <h2>Astillero</h2>
+  <div class="sub" style="margin:0 0 4px">Mejoras permanentes para todas tus partidas</div>
+  <div id="shopGold" class="goldline"></div>
+  <div id="upg" class="cards"></div>
+  <button id="bShopBack" class="big">Listo</button><br>
+  <button id="bRefund" class="ghost">Reembolsar mejoras</button>
+</div></div>
+
+<div id="missions" class="ov"><div class="panel wide">
+  <h2>Misiones</h2>
+  <div id="misGold" class="goldline"></div>
+  <div id="misCount" class="sub" style="margin:4px 0"></div>
+  <div id="misList"></div>
+  <button class="big back">Volver</button>
+</div></div>
+
+<div id="registro" class="ov"><div class="panel wide">
+  <h2>Registro</h2>
+  <div id="regStats" class="regstats"></div>
+  <h3>Islas (mejor tiempo)</h3>
+  <div id="regIslas" class="regstats"></div>
+  <h3>Bestiario</h3>
+  <div id="bestiario" class="bestiario"></div>
+  <h3>Frutas de poder</h3>
+  <div id="frutasInfo" class="frutas"></div>
+  <button class="big back">Volver</button>
+</div></div>
+
+<div id="cofre" class="ov"><div class="panel wide">
+  <h2>Cofre del Tesoro</h2>
+  <div class="sub" style="margin:0">Gasta Berries para conseguir tesoros permanentes</div>
+  <div id="cofGold" class="goldline"></div>
+  <div class="row" style="margin:10px 0"><button id="bPull1" class="big"></button><button id="bPull10" class="big alt"></button></div>
+  <div id="cofRates" class="rates"></div>
+  <div id="pullRes" class="cards loots"></div>
+  <button class="big back">Volver</button>
+</div></div>
+
+<div id="inv" class="ov"><div class="panel wide">
+  <h2>Inventario</h2>
+  <div id="invGold" class="goldline"></div>
+  <h3>Equipado</h3>
+  <div id="invSlots" class="slots"></div>
+  <div id="invTotal" class="rates"></div>
+  <h3>Tus tesoros</h3>
+  <div id="invGrid" class="cards loots"></div>
+  <button class="big back">Volver</button>
+</div></div>
+
+<div id="levelup" class="ov"><div class="panel wide">
+  <h2 id="luTitle">¡Subes de nivel!</h2>
+  <div id="luSub"></div>
+  <div id="opts" class="cards"></div>
+</div></div>
+
+<div id="pause" class="ov"><div class="panel">
+  <h2>Pausa</h2>
+  <div id="pStats"></div>
+  <button id="bResume" class="big">Seguir</button><br>
+  <button id="bQuit" class="ghost">Abandonar partida</button>
+</div></div>
+
+<div id="over" class="ov">
+  <div class="poster">
+    <div class="wanted">SE BUSCA</div>
+    <div class="dora">VIVO O MUERTO</div>
+    <canvas id="portrait" width="220" height="180"></canvas>
+    <div class="pname" id="oName"></div>
+    <div class="pbounty" id="oBounty"></div>
+    <div class="pstats" id="oStats"></div>
+  </div>
+  <div id="oMsg"></div>
+  <div id="oGold" class="goldline"></div>
+  <div class="row"><button id="bRetry" class="big">Otra vez</button><button id="bShop2" class="big alt">⚓ Astillero</button><button id="bMis2" class="big alt">📜 Misiones</button><button id="bMenu" class="ghost">Menú</button></div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/dibujo.js"></script>
+<script src="js/islas.js"></script>
+<script src="js/juego.js"></script>
+<script>
+  // Modo app instalable (PWA): solo funciona servido por https o localhost
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+    try { navigator.serviceWorker.register('sw.js').catch(() => {}); } catch (e) {}
+  }
+</script>
+</body>
+</html>
