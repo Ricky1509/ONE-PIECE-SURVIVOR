@@ -306,7 +306,8 @@ window.MDR_CONFIG = {
 
   // ---------------------------------------------------------------
   //  FRUTAS DE PODER (caen de los enemigos; efecto temporal)
-  //  efecto: experiencia | dano | velocidad | armadura
+  //  efecto: experiencia | dano | velocidad | armadura | invisible | iman | codicia
+  //          | area | recarga | curacion | todo   ·   peso: probabilidad relativa (1 por defecto)
   // ---------------------------------------------------------------
   probabilidadFruta: 0.004,       // por enemigo normal
   probabilidadFrutaCapitan: 0.08, // por capitán de la Armada
@@ -315,6 +316,13 @@ window.MDR_CONFIG = {
     furia:  { nombre: 'Fruta Furia',  descripcion: '+50% de daño',         efecto: 'dano',        valor: 1.5, duracion: 15, color: '#e74c3c' },
     brisa:  { nombre: 'Fruta Brisa',  descripcion: '+40% de velocidad',    efecto: 'velocidad',   valor: 1.4, duracion: 15, color: '#48c9b0' },
     coral:  { nombre: 'Fruta Coral',  descripcion: '+5 de armadura',       efecto: 'armadura',    valor: 5,   duracion: 15, color: '#ff8fab' },
+    sombra:   { nombre: 'Fruta Sombra',    descripcion: 'Invisible: los enemigos no te encuentran', efecto: 'invisible', valor: 1,   duracion: 6,  color: '#5b4b8a' },
+    iman:     { nombre: 'Fruta Imán',      descripcion: 'Atraes las monedas desde muy lejos',      efecto: 'iman',      valor: 5,   duracion: 12, color: '#c0392b' },
+    fortuna:  { nombre: 'Fruta Fortuna',   descripcion: 'Cada derrota cuenta doble para los Berries', efecto: 'codicia', valor: 2,   duracion: 20, color: '#e8b923' },
+    gigante:  { nombre: 'Fruta Gigante',   descripcion: '+50% de área de ataque',                  efecto: 'area',      valor: 1.5, duracion: 15, color: '#8e5a2b' },
+    chispa:   { nombre: 'Fruta Chispa',    descripcion: 'Recargas un 40% más rápido',              efecto: 'recarga',   valor: 0.6, duracion: 12, color: '#f9ca24' },
+    sanadora: { nombre: 'Fruta Sanadora',  descripcion: 'Cura un 40% al instante y +5 vida/s',     efecto: 'curacion',  valor: 5,   duracion: 10, color: '#2ecc71' },
+    arcoiris: { nombre: 'Fruta Arcoíris',  descripcion: 'Rara: +50% daño, velocidad, experiencia y área', efecto: 'todo', valor: 1.5, duracion: 12, color: '#ff6bd6', peso: 0.25 },
   },
 
   // ---------------------------------------------------------------
@@ -422,6 +430,10 @@ window.MDR_CONFIG = {
     hielo:   { nombre: 'Fruta Glacial', icono: '❄️', niveles: ['Fragmentos de hielo en círculo que ralentizan', '+2 fragmentos', '+40% daño', '+2 fragmentos, ralentizan más tiempo', 'Congela: ralentiza un 80%'] },
     arpon:   { nombre: 'Arpón', icono: '🔱', niveles: ['Arpón que atraviesa y vuelve a tu mano', '+1 arpón', '+30% daño', '+1 arpón', 'Más rápido y de más alcance'] },
     tambor:  { nombre: 'Tambor de Guerra', icono: '🥁', niveles: ['Onda expansiva que empuja a los enemigos', '+25% radio', '+40% daño', '-20% recarga', 'Doble onda'] },
+    cadena:  { nombre: 'Fruta Centella', icono: '🌩️', niveles: ['Un rayo salta de enemigo en enemigo', '+2 saltos', '+40% daño', '+2 saltos, -20% recarga', 'Lanza dos cadenas a la vez'] },
+    arena:   { nombre: 'Fruta Arena', icono: '⏳', niveles: ['Charcos de arena movediza que frenan y dañan', '+1 charco', '+30% tamaño', '+1 charco y +40% daño', 'Los charcos duran el doble'] },
+    espinas: { nombre: 'Fruta Espina', icono: '🌵', niveles: ['Espinas que brotan del suelo bajo los enemigos', '+2 espinas', '+40% daño', '+2 espinas, -20% recarga', 'Espinas el doble de grandes'] },
+    burbuja: { nombre: 'Fruta Burbuja', icono: '🫧', niveles: ['Burbujas que atrapan a los enemigos', '+1 burbuja', '+50% daño y atrapan más tiempo', '+1 burbuja', 'Al estallar, dañan alrededor'] },
     viento:  { nombre: 'Fruta Vendaval', icono: '🌪️', niveles: ['Tornados que arrastran y golpean', '+1 tornado', '+30% tamaño y +40% daño', '+1 tornado', 'Los tornados duran el doble'] },
   },
   pasivos: {

@@ -146,7 +146,18 @@ SAVE.stats = Object.assign({ derribos: 0, mejorTiempo: 0, mejorNivel: 0, frutas:
 const itemMul = id => 1 + 0.25 * ((SAVE.inv[id] || 1) - 1);
 function ib(stat) { let v = 0; for (const id of SAVE.equip) { const it = TESOROS[id]; if (it && it.stats && it.stats[stat]) v += it.stats[stat] * itemMul(id); } return v; }
 // Frutas activas
-function buffMul(efecto) { let m = 1; if (G) for (const k in G.buffs) if (G.buffs[k] > 0 && FRUTAS[k] && FRUTAS[k].efecto === efecto && efecto !== 'armadura') m *= FRUTAS[k].valor; return m; }
+const TODO_EFECTOS = ['dano', 'velocidad', 'experiencia', 'area'];
+function buffMul(efecto) {
+  let m = 1; if (!G) return m;
+  for (const k in G.buffs) {
+    if (!(G.buffs[k] > 0) || !FRUTAS[k] || efecto === 'armadura') continue;
+    const f = FRUTAS[k].efecto;
+    if (f === efecto || (f === 'todo' && TODO_EFECTOS.includes(efecto))) m *= FRUTAS[k].valor;
+  }
+  return m;
+}
+function buffOn(efecto) { if (G) for (const k in G.buffs) if (G.buffs[k] > 0 && FRUTAS[k] && FRUTAS[k].efecto === efecto) return true; return false; }
+const isInvisible = () => (G.pt && G.pt.velo > 0) || buffOn('invisible');
 function buffAdd(efecto) { let v = 0; if (G) for (const k in G.buffs) if (G.buffs[k] > 0 && FRUTAS[k] && FRUTAS[k].efecto === efecto) v += FRUTAS[k].valor; return v; }
 function misionProgreso(m) {
   const st = SAVE.stats, [tipo, arg] = m.tipo.split(':');
@@ -244,6 +255,7 @@ function newGame(ch, isla) {
     buffs: {}, waves: [], tornados: [], fruits: 0, bossKinds: [], killsBy: {}, runStats: {}, runPicks: [],
     orden: ordenById(SAVE.ordenSel) || null, res: OS.energiaMax * 0.5, pcd: [0, 0], zones: [], decoys: [], pt: {}, shield: 0, healT: 0, healRate: 0,
     storm: null, nextStorm: 40, storms: 0,
+    spikes: [], bonusKills: 0,
     dash: null, chargeAcc: 0, comp: { x: 0, y: -30, shoot: 1 }, oath: null, ptsAcc: 0, ordUp: {},
   };
   G.weapons.push({ id: ch.weapon, lvl: 1, t: 0.3 });
@@ -255,13 +267,13 @@ function recalc() {
   const c = G.ch.bonus || {}, lv = k => G.passives[k] || 0, old = G.st;
   G.st = {
     might: (1 + 0.1 * lv('polvora')) * (1 + pm('dano') + ib('dano') + rs('dano')) * buffMul('dano'),
-    cd: (c.cooldown || 1) * (1 - 0.08 * lv('reloj')) * Math.max(0.3, 1 - pm('recarga') - ib('recarga') - rs('recarga')),
-    area: (c.area || 1) * (1 + 0.1 * lv('catalejo')) * (1 + pm('area') + ib('area') + rs('area')),
+    cd: (c.cooldown || 1) * (1 - 0.08 * lv('reloj')) * Math.max(0.3, 1 - pm('recarga') - ib('recarga') - rs('recarga')) * buffMul('recarga'),
+    area: (c.area || 1) * (1 + 0.1 * lv('catalejo')) * (1 + pm('area') + ib('area') + rs('area')) * buffMul('area'),
     amount: lv('loro'),
     speed: 150 * (c.speed || 1) * (1 + 0.1 * lv('botas')) * (1 + pm('velocidad') + ib('velocidad') + rs('velocidad')) * buffMul('velocidad') * (G.pt && G.pt.carga > 0 ? 1.4 : 1),
-    magnet: 75 * (1 + 0.3 * lv('brujula')) * (1 + pm('iman') + ib('iman') + rs('iman')),
+    magnet: 75 * (1 + 0.3 * lv('brujula')) * (1 + pm('iman') + ib('iman') + rs('iman')) * buffMul('iman'),
     armor: (c.armor || 0) + lv('coraza') + pm('armadura') + ib('armadura') + rs('armadura') + buffAdd('armadura') + (G.pt && G.pt.brasas > 0 ? 3 : 0) + (G.pt && G.pt.roca > 0 ? 6 : 0),
-    regen: 0.3 * lv('coraza') + pm('regen') + ib('regen') + rs('regen'),
+    regen: 0.3 * lv('coraza') + pm('regen') + ib('regen') + rs('regen') + buffAdd('curacion'),
     maxHp: 100 * (c.maxHp || 1) * (1 + 0.2 * lv('ron')) * (1 + pm('vida') + ib('vida') + rs('vida')),
     xpMul: (1 + pm('experiencia') + ib('experiencia') + rs('experiencia')) * buffMul('experiencia'),
   };
@@ -317,6 +329,7 @@ function killEnemy(e) {
     G.parts.push({ x: e.x, y: e.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, t: rnd(.3, .6), c: col, r: rnd(2, 4) });
   }
   G.killsBy[e.kind] = (G.killsBy[e.kind] || 0) + 1;
+  if (buffOn('codicia')) G.bonusKills = (G.bonusKills || 0) + 1;
   addOrdenPts(1);
   if (G.fx.length < 120) G.fx.push({ k: 'poof', x: e.x, y: e.y, r: e.r, t: 0.35, max: 0.35 });
   snd('kill');
@@ -427,23 +440,12 @@ function usePower(i) {
   G.res -= pwCost(pw); G.pcd[i] = pwCd(pw);
   POWERS[pw.id](); snd('power');
 }
-function updateOrden(dt) {
+// Temporizadores de efectos, zonas en el suelo y espinas (comunes a armas y órdenes)
+function updateCommon(dt) {
   const p = G.p;
-  // puntos por tiempo
-  G.ptsAcc += dt * 0.5; if (G.ptsAcc >= 1) { const n = Math.floor(G.ptsAcc); G.ptsAcc -= n; addOrdenPts(n); }
-  G.res = Math.min(resMax(), G.res + (OS.regenEnergia + 0.5 * ou('res')) * dt);
-  G.pcd[0] = Math.max(0, G.pcd[0] - dt); G.pcd[1] = Math.max(0, G.pcd[1] - dt);
   let rc = false;
   for (const k in G.pt) if (G.pt[k] > 0) { G.pt[k] -= dt; if (G.pt[k] <= 0) { G.pt[k] = 0; if (k === 'escudo') G.shield = 0; if (k === 'brasas' || k === 'roca' || k === 'carga') rc = true; } }
   if (rc) recalc();
-  if (G.healT > 0) { G.healT -= dt; p.hp = Math.min(G.st.maxHp, p.hp + G.healRate * dt); }
-  if (G.pt.replica > 0 && G.pt.replica - dt <= 0) { G.pt.replica = 0; POWERS.terremoto(true); }
-  if (G.dash && G.dash.t - dt <= 0 && G.dash.gust) { hitArea(p.x, p.y, 90, 20 * powerMul() * G.st.might, 500); fxRing(p.x, p.y, 90, G.orden.color); }
-  if (G.dash) { G.dash.t -= dt; p.x += G.dash.vx * dt; p.y += G.dash.vy * dt; if (G.parts.length < 350) G.parts.push({ x: p.x, y: p.y, vx: 0, vy: 0, t: 0.3, c: G.orden.color, r: 6 }); if (G.dash.t <= 0) G.dash = null; }
-  if (G.pt.carga > 0) {
-    G.chargeAcc += dt;
-    if (G.chargeAcc >= 0.45) { G.chargeAcc = 0; const e = nearestEnemy(p.x, p.y, 260); if (e) { G.fx.push({ k: 'zap', x1: p.x, y1: p.y, x2: e.x, y2: e.y, t: 0.18, max: 0.18, seed: Math.random() * 99 | 0 }); hurt(e, 15 * powerMul() * G.st.might); snd('zap'); } }
-  }
   for (const z of G.zones) {
     z.t -= dt; if (z.follow) { z.x = p.x; z.y = p.y; }
     if (z.kind === 'coral' && ou('esp') && Math.hypot(p.x - z.x, p.y - z.y) < z.r) p.hp = Math.min(G.st.maxHp, p.hp + G.st.maxHp * 0.03 * dt);
@@ -455,6 +457,27 @@ function updateOrden(dt) {
     });
   }
   G.zones = G.zones.filter(z => z.t > 0);
+  for (const sp of G.spikes) {
+    sp.t -= dt;
+    if (sp.t <= 0 && !sp.done) { sp.done = true; sp.show = 0.35; hitArea(sp.x, sp.y, sp.r, sp.dmg, 150); }
+    if (sp.done) sp.show -= dt;
+  }
+  G.spikes = G.spikes.filter(sp => !sp.done || sp.show > 0);
+}
+function updateOrden(dt) {
+  const p = G.p;
+  // puntos por tiempo
+  G.ptsAcc += dt * 0.5; if (G.ptsAcc >= 1) { const n = Math.floor(G.ptsAcc); G.ptsAcc -= n; addOrdenPts(n); }
+  G.res = Math.min(resMax(), G.res + (OS.regenEnergia + 0.5 * ou('res')) * dt);
+  G.pcd[0] = Math.max(0, G.pcd[0] - dt); G.pcd[1] = Math.max(0, G.pcd[1] - dt);
+  if (G.healT > 0) { G.healT -= dt; p.hp = Math.min(G.st.maxHp, p.hp + G.healRate * dt); }
+  if (G.pt.replica > 0 && G.pt.replica - dt <= 0) { G.pt.replica = 0; POWERS.terremoto(true); }
+  if (G.dash && G.dash.t - dt <= 0 && G.dash.gust) { hitArea(p.x, p.y, 90, 20 * powerMul() * G.st.might, 500); fxRing(p.x, p.y, 90, G.orden.color); }
+  if (G.dash) { G.dash.t -= dt; p.x += G.dash.vx * dt; p.y += G.dash.vy * dt; if (G.parts.length < 350) G.parts.push({ x: p.x, y: p.y, vx: 0, vy: 0, t: 0.3, c: G.orden.color, r: 6 }); if (G.dash.t <= 0) G.dash = null; }
+  if (G.pt.carga > 0) {
+    G.chargeAcc += dt;
+    if (G.chargeAcc >= 0.45) { G.chargeAcc = 0; const e = nearestEnemy(p.x, p.y, 260); if (e) { G.fx.push({ k: 'zap', x1: p.x, y1: p.y, x2: e.x, y2: e.y, t: 0.18, max: 0.18, seed: Math.random() * 99 | 0 }); hurt(e, 15 * powerMul() * G.st.might); snd('zap'); } }
+  }
   for (const dc of G.decoys) {
     dc.t -= dt; dc.ph += dt * 3;
     if (dc.t <= 0) { hitArea(dc.x, dc.y, 95, 30 * powerMul() * G.st.might, 400); G.fx.push({ k: 'boom', x: dc.x, y: dc.y, r: 95, t: 0.35, max: 0.35 }); snd('boom'); }
@@ -519,7 +542,9 @@ function drawStormScreen() {
 }
 function dropFruit(x, y) {
   const ks = Object.keys(FRUTAS); if (!ks.length) return;
-  G.items.push({ k: 'fruit', f: ks[Math.random() * ks.length | 0], x, y });
+  const tot = ks.reduce((a, k) => a + (FRUTAS[k].peso ?? 1), 0); let r = Math.random() * tot, f = ks[0];
+  for (const k of ks) { r -= FRUTAS[k].peso ?? 1; if (r < 0) { f = k; break; } }
+  G.items.push({ k: 'fruit', f, x, y });
 }
 function dropCoin(x, y, v) {
   if (G.coins.length > 450) { G.coins[Math.random() * G.coins.length | 0].v += v; return; }
@@ -696,6 +721,61 @@ function updateWeapons(dt) {
         if (w.t <= 0) { w.t = 2.0 * st.cd * (L >= 4 ? 0.8 : 1); wave(); if (L >= 5) w.pend = 0.35; }
         break;
       }
+      case 'cadena': {
+        w.t -= dt;
+        if (w.t <= 0) {
+          w.t = 1.8 * st.cd * (L >= 4 ? 0.8 : 1);
+          const chains = L >= 5 ? 2 : 1, hops = 3 + 2 * (+(L >= 2)) + 2 * (+(L >= 4)) + st.amount, dmg = 16 * (L >= 3 ? 1.4 : 1) * st.might;
+          const used = new Set(); let fired = false;
+          for (let ch = 0; ch < chains; ch++) {
+            let fx0 = p.x, fy0 = p.y, cur = null, best = 400 * 400;
+            for (const e of G.enemies) { if (e.dead || used.has(e)) continue; const d2 = (e.x - p.x) ** 2 + (e.y - p.y) ** 2; if (d2 < best) { best = d2; cur = e; } }
+            for (let h = 0; h < hops && cur; h++) {
+              used.add(cur); fired = true;
+              G.fx.push({ k: 'zap', x1: fx0, y1: fy0, x2: cur.x, y2: cur.y, t: 0.22, max: 0.22, seed: Math.random() * 99 | 0 });
+              fx0 = cur.x; fy0 = cur.y; hurt(cur, dmg);
+              let nx = null, nb = 170 * 170 * st.area * st.area;
+              for (const e of G.enemies) { if (e.dead || used.has(e)) continue; const d2 = (e.x - fx0) ** 2 + (e.y - fy0) ** 2; if (d2 < nb) { nb = d2; nx = e; } }
+              cur = nx;
+            }
+          }
+          if (fired) snd('zap');
+        }
+        break;
+      }
+      case 'arena': {
+        w.t -= dt;
+        if (w.t <= 0) {
+          w.t = 2.6 * st.cd;
+          const n = 1 + (+(L >= 2)) + (+(L >= 4)) + st.amount, R = 62 * st.area * (L >= 3 ? 1.3 : 1), dmg = 6 * (L >= 4 ? 1.4 : 1) * st.might, life = L >= 5 ? 8 : 4;
+          const c = G.enemies.filter(e => !e.dead && (e.x - p.x) ** 2 + (e.y - p.y) ** 2 < 350 * 350);
+          for (let i = 0; i < n; i++) { const e = c.length ? c[Math.random() * c.length | 0] : null; const zx = e ? e.x : p.x + rnd(-150, 150), zy = e ? e.y : p.y + rnd(-150, 150);
+            G.zones.push({ x: zx, y: zy, r: R, t: life, max: life, dmg, tick: 0, slow: 0.6, col: '#d9a35f', kind: 'arena' }); }
+        }
+        break;
+      }
+      case 'espinas': {
+        w.t -= dt;
+        if (w.t <= 0) {
+          w.t = 2.0 * st.cd * (L >= 4 ? 0.8 : 1);
+          const n = 3 + 2 * (+(L >= 2)) + 2 * (+(L >= 4)) + st.amount, R = 28 * st.area * (L >= 5 ? 2 : 1), dmg = 20 * (L >= 3 ? 1.4 : 1) * st.might;
+          const c = G.enemies.filter(e => !e.dead && (e.x - p.x) ** 2 + (e.y - p.y) ** 2 < 380 * 380);
+          for (let i = 0; i < n; i++) { const e = c.length ? c.splice(Math.random() * c.length | 0, 1)[0] : null; G.spikes.push({ x: e ? e.x : p.x + rnd(-160, 160), y: e ? e.y : p.y + rnd(-160, 160), t: 0.45, r: R, dmg }); }
+        }
+        break;
+      }
+      case 'burbuja': {
+        w.t -= dt;
+        if (w.t <= 0) {
+          w.t = 1.5 * st.cd;
+          const tg = nearestEnemy(p.x, p.y, 420); if (!tg) { w.t = 0.2; break; }
+          const n = 1 + (+(L >= 2)) + (+(L >= 4)) + st.amount, base = Math.atan2(tg.y - p.y, tg.x - p.x);
+          for (let i = 0; i < n; i++) { const a = base + (i - (n - 1) / 2) * 0.3;
+            G.bullets.push({ kind: 'burbuja', x: p.x, y: p.y, vx: Math.cos(a) * 270, vy: Math.sin(a) * 270, r: 11 * st.area, dmg: 10 * (L >= 3 ? 1.5 : 1) * st.might, pierce: 0, life: 1.6, hit: new Set(), trap: 1.5 + (L >= 3 ? 0.8 : 0), pop: L >= 5 }); }
+          snd('shell');
+        }
+        break;
+      }
       case 'viento': {
         w.t -= dt;
         if (w.t <= 0) {
@@ -763,7 +843,7 @@ function updateEnemies(dt) {
     if (!e.boss && d > farR) { const [x, y] = ringPos(true); e.x = x; e.y = y; continue; }
     let sp = e.spd, ux = dx / d, uy = dy / d;
     if (e.slowT > 0) { e.slowT -= dt; sp *= 1 - (e.slowA || 0.5); if (e.slowT <= 0) e.slowA = 0; }
-    if (!e.boss && G.pt.velo > 0) { const a = e.ph * 0.15 + e.seed; ux = Math.cos(a); uy = Math.sin(a); sp *= 0.5; }
+    if (!e.boss && isInvisible()) { const a = e.ph * 0.15 + e.seed; ux = Math.cos(a); uy = Math.sin(a); sp *= 0.5; }
     else if (G.decoys.length) {
       let best = null, bd = 400 * 400;
       for (const dc of G.decoys) { const q = (dc.x - e.x) ** 2 + (dc.y - e.y) ** 2; if (q < bd) { bd = q; best = dc; } }
@@ -777,8 +857,9 @@ function updateEnemies(dt) {
     e.x += (ux * sp + e.kx) * dt; e.y += (uy * sp + e.ky) * dt;
     e.kx *= kd; e.ky *= kd; e.flash -= dt; e.ph += dt * 8;
     if (e.markT > 0) e.markT -= dt;
+    if (e.bubbleT > 0) { e.bubbleT -= dt; if (e.bubbleT <= 0 && e.bubblePop) { const bx = e.x, by = e.y, bd = e.bubblePop; e.bubblePop = 0; hitArea(bx, by, 50, bd, 200); G.fx.push({ k: 'ring', x: bx, y: by, r: 50, col: '#9fe8ff', t: 0.3, max: 0.3 }); snd('shell'); if (e.dead) continue; } }
     if (e.burnT > 0) { e.burnT -= dt; e.burnAcc = (e.burnAcc || 0) + dt; if (e.burnAcc >= 0.5) { e.burnAcc = 0; hurt(e, e.burnD || 3); if (e.dead) continue; } }
-    if (d < e.r + p.r && p.iframe <= 0 && state === 'play' && !(G.pt.velo > 0)) damagePlayer(e.dmg);
+    if (d < e.r + p.r && p.iframe <= 0 && state === 'play' && !isInvisible()) damagePlayer(e.dmg);
   }
   // separación para que no se apilen
   for (const e of G.enemies) {
@@ -815,6 +896,7 @@ function update(dt) {
   p.x += ix * st.speed * dt; p.y += iy * st.speed * dt;
   p.iframe -= dt; p.hurtT -= dt;
   p.hp = Math.min(st.maxHp, p.hp + st.regen * dt);
+  updateCommon(dt);
   if (G.orden) updateOrden(dt);
   if (G.isla.tormenta) updateStorm(dt);
 
@@ -842,6 +924,7 @@ function update(dt) {
       if ((e.x - b.x) ** 2 + (e.y - b.y) ** 2 < (e.r + b.r) ** 2) {
         b.hit.add(e);
         if (b.slowT) { e.slowT = Math.max(e.slowT || 0, b.slowT); e.slowA = Math.max(e.slowA || 0, b.slowA); }
+        if (b.trap) { e.slowT = Math.max(e.slowT || 0, b.trap); e.slowA = 1; e.bubbleT = b.trap; e.bubblePop = b.pop ? b.dmg : 0; }
         hurt(e, b.dmg, b.vx * 0.25 * (b.kb || 1), b.vy * 0.25 * (b.kb || 1));
         if (b.pierce-- <= 0) b.life = 0;
       }
@@ -906,7 +989,7 @@ function update(dt) {
       else if (it.k === 'magnet') { for (const c of G.coins) c.mag = true; banner('¡Caracola imantada!'); snd('chest'); }
       else if (it.k === 'chest') { G.bounty += 1e6; G.pending++; openChest = true; snd('chest'); }
       else if (it.k === 'concha') { G.res = Math.min(resMax(), G.res + 20); snd('shell'); }
-      else if (it.k === 'fruit') { const fr = FRUTAS[it.f]; G.buffs[it.f] = fr.duracion; G.fruits++; recalc(); banner(fr.nombre + ': ' + fr.descripcion); snd('fruit'); }
+      else if (it.k === 'fruit') { const fr = FRUTAS[it.f]; G.buffs[it.f] = fr.duracion; G.fruits++; if (fr.efecto === 'curacion') p.hp = Math.min(st.maxHp, p.hp + st.maxHp * 0.4); recalc(); banner(fr.nombre + ': ' + fr.descripcion); snd('fruit'); }
     }
   }
   G.items = G.items.filter(i => !i.dead);
@@ -943,6 +1026,11 @@ function drawEnemy(e) {
     drawShadow(ctx, e.x, e.y, r);
     drawSprite(ctx, key, e.x, e.y, Math.floor(G.t * o.cfg.fps) + e.seed, G.p.x < e.x, e.flash > 0);
   } else MDR_DIBUJO.enemigo(ctx, e.kind, e.x, e.y, r, e.ph, e.flash > 0);
+  if (e.bubbleT > 0) {
+    const g = ctx.createRadialGradient(e.x - r * 0.4, e.y - r * 0.5, 1, e.x, e.y, r * 1.5);
+    g.addColorStop(0, 'rgba(255,255,255,.6)'); g.addColorStop(0.7, 'rgba(160,230,255,.15)'); g.addColorStop(1, 'rgba(120,200,255,.5)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(e.x, e.y, r * 1.5, 0, TAU); ctx.fill(); ctx.strokeStyle = 'rgba(200,240,255,.9)'; ctx.lineWidth = 1.5; ctx.stroke();
+  }
   if (e.markT > 0) { ctx.strokeStyle = '#b39dff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(e.x, e.y - r * 1.9, 5, 0, TAU); ctx.stroke(); ctx.fillStyle = '#b39dff'; ctx.beginPath(); ctx.arc(e.x, e.y - r * 1.9, 2, 0, TAU); ctx.fill(); }
   if (e.burnT > 0 && Math.random() < 0.3 && G.parts.length < 350) G.parts.push({ x: e.x + rnd(-r, r), y: e.y - r * 0.5, vx: 0, vy: -40, t: 0.4, c: '#ff8c2a', r: 3 });
   if (e.slowT > 0) { ctx.fillStyle = 'rgba(150,220,255,.35)'; ctx.beginPath(); ctx.arc(e.x, e.y, r * 1.1, 0, TAU); ctx.fill(); }
@@ -1243,14 +1331,24 @@ function drawWorld() {
   for (const e of es) drawEnemy(e);
   // jugador
   const blink = p.iframe > 0 && Math.floor(t * 20) % 2 === 0;
+  for (const z of G.zones) {
+    const zc = z.col || '#ffffff', al = Math.min(1, z.t * 2) * (z.kind === 'calma' ? 0.18 : z.kind === 'arena' ? 0.38 : 0.3);
+    ctx.fillStyle = zc + Math.round(al * 255).toString(16).padStart(2, '0'); ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, TAU); ctx.fill();
+    if (z.kind === 'arena') { ctx.strokeStyle = 'rgba(120,80,30,.5)'; ctx.lineWidth = 2; for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.arc(z.x, z.y, z.r * (0.3 + k * 0.25), t * (1.5 + k * 0.5), t * (1.5 + k * 0.5) + 4); ctx.stroke(); } continue; }
+    ctx.strokeStyle = zc; ctx.lineWidth = 2; ctx.setLineDash(z.kind === 'calma' ? [6, 6] : []); ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+    if (z.kind === 'coral') for (let k = 0; k < 10; k++) { const a = k / 10 * TAU, rx = z.x + Math.cos(a) * z.r * 0.85, ry = z.y + Math.sin(a) * z.r * 0.85; ctx.fillStyle = zc; ctx.beginPath(); ctx.moveTo(rx - 5, ry + 4); ctx.lineTo(rx, ry - 12); ctx.lineTo(rx + 5, ry + 4); ctx.fill(); }
+  }
+  for (const sp of G.spikes) {
+    if (!sp.done) { const k = 1 - sp.t / 0.45; ctx.strokeStyle = `rgba(60,120,40,${0.3 + k * 0.5})`; ctx.lineWidth = 2; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.arc(sp.x, sp.y, sp.r, 0, TAU); ctx.stroke(); ctx.setLineDash([]); continue; }
+    const k = Math.max(0, sp.show / 0.35), h = sp.r * 1.1 * Math.min(1, (0.35 - sp.show) * 8 + 0.2);
+    ctx.globalAlpha = Math.min(1, k * 2);
+    for (let i = 0; i < 6; i++) { const a = i / 6 * TAU + sp.x, ox = sp.x + Math.cos(a) * sp.r * 0.45, oy = sp.y + Math.sin(a) * sp.r * 0.3;
+      const g = ctx.createLinearGradient(ox, oy, ox, oy - h); g.addColorStop(0, '#2f6b2a'); g.addColorStop(1, '#a8e07a');
+      ctx.fillStyle = g; ctx.strokeStyle = '#1b3d17'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(ox - 4, oy); ctx.lineTo(ox, oy - h * (0.7 + (i % 3) * 0.15)); ctx.lineTo(ox + 4, oy); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+  }
   if (G.orden) {
     const col = G.orden.color;
-    for (const z of G.zones) {
-      const al = Math.min(1, z.t * 2) * (z.kind === 'calma' ? 0.18 : 0.3);
-      ctx.fillStyle = col + Math.round(al * 255).toString(16).padStart(2, '0'); ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, TAU); ctx.fill();
-      ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.setLineDash(z.kind === 'calma' ? [6, 6] : []); ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
-      if (z.kind === 'coral') for (let k = 0; k < 10; k++) { const a = k / 10 * TAU, rx = z.x + Math.cos(a) * z.r * 0.85, ry = z.y + Math.sin(a) * z.r * 0.85; ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(rx - 5, ry + 4); ctx.lineTo(rx, ry - 12); ctx.lineTo(rx + 5, ry + 4); ctx.fill(); }
-    }
     for (const dc of G.decoys) { ctx.globalAlpha = 0.45 + Math.sin(dc.ph * 2) * 0.1; drawPlayer({ ...p, x: dc.x, y: dc.y, moving: true }, t + dc.ph, false); ctx.globalAlpha = 1; }
     if (G.rank >= 4) { // alas de luz (Leyenda)
       ctx.save(); ctx.translate(p.x, p.y - 6); const fl = Math.sin(t * 4) * 0.12;
@@ -1260,7 +1358,7 @@ function drawWorld() {
     if (G.rank >= 2) { const g = ctx.createRadialGradient(p.x, p.y + 10, 4, p.x, p.y + 10, 34); g.addColorStop(0, col + '88'); g.addColorStop(1, col + '00'); ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(p.x, p.y + 12, 34, 14, 0, 0, TAU); ctx.fill(); }
     if (G.pt.brasas > 0 || G.pt.roca > 0) { ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(p.x, p.y, 26 + Math.sin(t * 10) * 2, 0, TAU); ctx.stroke(); }
   }
-  if (G.pt && G.pt.velo > 0) ctx.globalAlpha = 0.35;
+  if (isInvisible()) ctx.globalAlpha = 0.35;
   if (!blink) drawPlayer(p, t, p.hurtT > 0);
   ctx.globalAlpha = 1;
   if (G.orden) {
@@ -1309,6 +1407,11 @@ function drawWorld() {
       ctx.fillStyle = b.col + 'aa'; ctx.beginPath(); ctx.ellipse(0, 0, b.r * 0.45, b.r, 0, -Math.PI / 2, Math.PI / 2); ctx.fill();
       ctx.strokeStyle = '#ffffffcc'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(0, 0, b.r * 0.45, b.r, 0, -Math.PI / 2, Math.PI / 2); ctx.stroke();
       ctx.restore(); continue;
+    }
+    if (b.kind === 'burbuja') {
+      const g = ctx.createRadialGradient(b.x - b.r * 0.3, b.y - b.r * 0.3, 1, b.x, b.y, b.r);
+      g.addColorStop(0, 'rgba(255,255,255,.85)'); g.addColorStop(0.6, 'rgba(160,230,255,.25)'); g.addColorStop(1, 'rgba(120,200,255,.55)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU); ctx.fill(); ctx.strokeStyle = 'rgba(200,240,255,.9)'; ctx.lineWidth = 1.2; ctx.stroke(); continue;
     }
     if (b.kind === 'chispa') { ctx.fillStyle = b.col; ctx.beginPath(); ctx.arc(b.x, b.y, 4, 0, TAU); ctx.fill(); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(b.x, b.y, 1.8, 0, TAU); ctx.fill(); continue; }
     if (b.kind === 'hielo' && b.big) { ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(Math.atan2(b.vy, b.vx)); ctx.fillStyle = '#d9f6ff'; ctx.strokeStyle = '#3b8fd0'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(18, 0); ctx.lineTo(-4, -6); ctx.lineTo(-16, 0); ctx.lineTo(-4, 6); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); continue; }
@@ -1868,7 +1971,7 @@ function endGame(won) {
   const unlockedBefore = ISLAS.filter(islaUnlocked).map(i => i.id);
   SAVE.islas[G.isla.id] = Math.max(SAVE.islas[G.isla.id] || 0, Math.floor(G.t));
   const nuevas = ISLAS.filter(i => islaUnlocked(i) && !unlockedBefore.includes(i.id));
-  const base = (G.isla.berries || 1) * G.kills * PROG.berriesPorDerribo + (G.isla.berries || 1) * (G.t * PROG.berriesPorSegundo + G.bosses * PROG.berriesPorJefe + (won ? PROG.berriesPorVictoria : 0));
+  const base = (G.isla.berries || 1) * (G.kills + (G.bonusKills || 0)) * PROG.berriesPorDerribo + (G.isla.berries || 1) * (G.t * PROG.berriesPorSegundo + G.bosses * PROG.berriesPorJefe + (won ? PROG.berriesPorVictoria : 0));
   G.gold = Math.floor(base * (1 + pm('codicia') + ib('berries') + rs('berries')));
   SAVE.berries += G.gold; SAVE.partidas++; if (won) SAVE.victorias++;
   const S = SAVE.stats;

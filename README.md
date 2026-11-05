@@ -21,9 +21,9 @@ npx serve .
 - **Órdenes del Faro:** 10 órdenes (Vendaval, Marea, Coral, Bruma, Ascuas, Abismo, Trueno, Ancla, Escarcha y Estrellas), cada una con 2 poderes (Q / E) que gastan Resonancia, un compañero espiritual que dispara contigo, mejoras propias al subir de nivel y una mejora especial. Jugar con una orden suma puntos; al alcanzar cada rango (Grumete → Marinero → Oficial → Capitán → Leyenda) se pronuncia un juramento con una animación a pantalla completa
 - **Gran Tormenta:** en las islas de tormenta (Ojo de la Tormenta, Cumbres de Cristal) estalla cada cierto tiempo: viento, lluvia y rayos con aviso; la Resonancia se recarga el triple
 - **8 piratas:** Capitana Coral (sable), Bram el Certero (pistola), Lumi Brújula (rayos), Barbagris (ancla), Bruno el Artillero (cañón), Nieves la Cartógrafa (hielo), Marea la Arponera (arpón) y Kai el Tamborilero (tambor). Los 6 últimos se desbloquean con Berries
-- **10 armas** (nivel 1–5): Sable, Pistola, Rayo de Tormenta, Ancla Giratoria, Cañonazo, Fruta Ígnea, Fruta Glacial, Arpón, Tambor de Guerra y Fruta Vendaval
+- **14 armas** (nivel 1–5): Sable, Pistola, Rayo de Tormenta, Ancla Giratoria, Cañonazo, Arpón, Tambor de Guerra y 7 frutas-arma (Ígnea, Glacial, Vendaval, Centella, Arena, Espina y Burbuja)
 - **Mejoras con rareza** al subir de nivel (Común, Raro, Épico, Legendario): experiencia, daño, vida, velocidad, recarga, área, recogida, armadura, regeneración y Berries; se acumulan durante la partida
-- **Frutas de poder** que caen de los enemigos (más a menudo de los capitanes): Dorada (doble experiencia), Furia (+50% daño), Brisa (+40% velocidad) y Coral (+5 armadura), con efecto temporal
+- **11 frutas de poder** con efecto temporal que caen de los enemigos: Dorada, Furia, Brisa, Coral, Sombra (invisible), Imán, Fortuna (Berries dobles), Gigante (área), Chispa (recarga), Sanadora y la rara Arcoíris
 - **8 objetos pasivos:** ron, botas, brújula, pólvora, reloj de arena, catalejo, loro, coraza
 - **Enemigos:** soldados de la Armada, cangrejos, hombres-tiburón, capitanes y emboscadas cada 75 s
 - **Jefes:** Comodoro de Hierro (3:00), Rey Kraken (6:00), Almirante Tormenta (9:00)
