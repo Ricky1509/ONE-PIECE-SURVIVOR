@@ -49,10 +49,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           NOTAS="Versión para Windows de Mar de Recompensas (commit ${GITHUB_SHA::7}). MarDeRecompensas.exe: se abre directamente, sin instalar. MarDeRecompensas-Windows.zip: descomprímelo y abre 'Mar de Recompensas.exe'. Se actualiza sola con cada cambio del juego."
+          # Reintenta ante errores temporales de la API de GitHub (500/502/503)
+          intentar() { for i in 1 2 3 4 5; do "$@" && return 0; echo "Fallo temporal ($i). Reintentando en $((i*15)) s..."; sleep $((i*15)); done; return 1; }
           if gh release view escritorio >/dev/null 2>&1; then
-            gh release edit escritorio --notes "$NOTAS"
+            intentar gh release edit escritorio --notes "$NOTAS"
           else
-            gh release create escritorio --title "Mar de Recompensas para Windows" --notes "$NOTAS" --latest
+            intentar gh release create escritorio --title "Mar de Recompensas para Windows" --notes "$NOTAS" --latest
           fi
-          gh release upload escritorio dist/MarDeRecompensas-Windows.zip --clobber
-          if [ -f dist/MarDeRecompensas.exe ]; then gh release upload escritorio dist/MarDeRecompensas.exe --clobber; fi
+          intentar gh release upload escritorio dist/MarDeRecompensas-Windows.zip --clobber
+          if [ -f dist/MarDeRecompensas.exe ]; then intentar gh release upload escritorio dist/MarDeRecompensas.exe --clobber; fi
