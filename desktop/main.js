@@ -2,6 +2,7 @@
 // Carga el juego desde app/ (copiado por preparar.js) en una ventana sin menús.
 const { app, BrowserWindow, shell } = require('electron');
 const path = require('path');
+const { pathToFileURL } = require('url');
 
 function crearVentana() {
   const win = new BrowserWindow({
@@ -39,7 +40,9 @@ function crearVentana() {
       app.exit(ok && !errs.length ? 0 : 1);
     }, 4000));
   }
-  win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith('file:')) { e.preventDefault(); if (/^https?:/.test(url)) shell.openExternal(url); } });
+  // Solo se permite la página del juego (soltar un archivo HTML en la ventana no lo carga)
+  const INICIO = pathToFileURL(path.join(__dirname, 'app', 'index.html')).href;
+  win.webContents.on('will-navigate', (e, url) => { if (url.split('#')[0] !== INICIO) { e.preventDefault(); if (/^https?:/.test(url)) shell.openExternal(url); } });
 }
 
 app.whenReady().then(crearVentana);

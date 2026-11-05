@@ -1,0 +1,37 @@
+name: Pruebas
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pruebas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Sintaxis de los scripts
+        run: for f in js/*.js sw.js desktop/main.js tests/*.js; do node --check "$f" || exit 1; done
+      - name: Traducciones (todo texto tiene inglés)
+        run: node tests/i18n-check.js
+      - name: Instalar Playwright y Chromium
+        run: |
+          npm install --no-save --no-package-lock playwright@1
+          npx playwright install --with-deps chromium
+      - name: Prueba de humo en el navegador
+        run: EVIDENCE=1 node tests/smoke.js
+      - name: Guardar capturas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: capturas-prueba-humo
+          path: production/qa/evidence/
+          if-no-files-found: ignore

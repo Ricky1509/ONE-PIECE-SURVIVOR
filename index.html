@@ -201,6 +201,16 @@
     #chars{grid-template-columns:1fr 1fr}
     #chars .card .ds{font-size:12px}
   }
+  .opt{display:flex;justify-content:space-between;align-items:center;gap:12px;text-align:left;padding:10px 4px;border-bottom:1px solid rgba(246,201,69,.2);font-weight:700}
+  .opt input[type=range]{width:46%;accent-color:var(--gold)}
+  .opt input[type=checkbox]{width:24px;height:24px;accent-color:var(--gold)}
+  button.ghost.sm{padding:6px 10px;margin:2px;font-size:14px}
+  button.ghost.sm.on{background:var(--gold);color:#2a1606;border-color:var(--gold)}
+  #padhint{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:6;background:rgba(10,20,35,.82);border:2px solid var(--gold);border-radius:12px;padding:8px 14px;font-weight:700;font-size:14px;max-width:92vw;text-align:center;pointer-events:none;opacity:0;transition:opacity .4s}
+  #padhint.show{opacity:1}
+  /* foco visible para teclado y mando */
+  button:focus-visible,.card:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:3px;box-shadow:0 0 0 6px rgba(246,201,69,.6)}
+  .padnav button.pfocus,.padnav .card.pfocus{outline:3px solid #fff;outline-offset:3px;box-shadow:0 0 0 6px rgba(246,201,69,.6)}
 </style>
 </head>
 <body>
@@ -210,11 +220,12 @@
   <button id="pw1" class="pw"><span class="pk">E</span><span class="pi"></span><span class="pc"></span></button>
 </div>
 <div id="topbtns" style="display:none"><button id="bPause" aria-label="Pausa">⏸</button><button id="bMute" aria-label="Sonido">🔊</button></div>
+<div id="padhint" aria-live="polite"></div>
 
 <div id="menu" class="ov show home">
   <div class="home-top">
     <div class="home-title">Faro de Tormentas</div>
-    <div class="home-top-r"><div id="gold" class="goldpill"></div><button id="bLang" class="langbtn" aria-label="Idioma">🌐 ES</button></div>
+    <div class="home-top-r"><div id="gold" class="goldpill"></div><button id="bLang" class="langbtn" aria-label="Idioma">🌐 ES</button><button id="bOpts" class="langbtn" aria-label="Ajustes" title="Ajustes">⚙️</button></div>
   </div>
   <div class="home-grid">
     <div class="home-side">
@@ -337,7 +348,19 @@
   <h2>Pausa</h2>
   <div id="pStats"></div>
   <button id="bResume" class="big">Seguir</button><br>
-  <button id="bQuit" class="ghost">Abandonar partida</button>
+  <button id="bOpts2" class="ghost">⚙️ Ajustes</button><button id="bQuit" class="ghost">Abandonar partida</button>
+</div></div>
+
+<div id="ajustes" class="ov"><div class="panel">
+  <h2>Ajustes</h2>
+  <label class="opt"><span>🎵 Música</span><input type="range" id="oMusic" min="0" max="100" step="5"></label>
+  <label class="opt"><span>🔊 Efectos de sonido</span><input type="range" id="oSfx" min="0" max="100" step="5"></label>
+  <label class="opt chk"><span>📳 Temblor de pantalla</span><input type="checkbox" id="oShake"></label>
+  <label class="opt chk"><span>⚡ Destellos de pantalla</span><input type="checkbox" id="oFlash"></label>
+  <label class="opt chk"><span>🔢 Números de daño</span><input type="checkbox" id="oNums"></label>
+  <div class="opt" id="oLangRow"><span>🌐 Idioma</span><span><button class="ghost sm" id="oLangEs">Español</button><button class="ghost sm" id="oLangEn">English</button></span></div>
+  <div class="hint" data-i18n-html="controlsHint">⌨️ WASD / flechas: moverse · Q / E: poderes · Esc / P: pausa · 1-4: elegir mejora<br>🎮 Mando: stick o cruceta: moverse · X / LB y Y / RB: poderes · Start: pausa · A: aceptar · B: volver<br>📱 Táctil: arrastra en cualquier parte para moverte</div>
+  <button class="ghost back">Volver</button>
 </div></div>
 
 <div id="over" class="ov">
