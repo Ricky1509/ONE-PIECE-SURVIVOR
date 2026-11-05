@@ -14,6 +14,9 @@ const TEMAS = {
   nieve:    { base: ['#eef4f8', '#e5edf3'], speck: 'rgba(110,140,175,.25)', agua: ['#6fb3d9', '#2c6e98'], orilla: '#d5e4ee' },
   volcan:   { base: ['#433737', '#3b3030'], speck: 'rgba(255,120,40,.22)',  agua: ['#2b4a5e', '#14242e'], orilla: '#2a2222' },
   fantasma: { base: ['#4b5762', '#44505a'], speck: 'rgba(150,255,200,.14)', agua: ['#2d4c55', '#122228'], orilla: '#3a4148' },
+  tormenta: { base: ['#5b6670', '#55606a'], speck: 'rgba(20,30,40,.25)',    agua: ['#3c5568', '#1a2a36'], orilla: '#6d7780' },
+  cristal:  { base: ['#3b3652', '#36314b'], speck: 'rgba(150,220,255,.22)', agua: ['#3a3f78', '#191b3d'], orilla: '#4a4566' },
+  gruta:    { base: ['#202b34', '#1c262e'], speck: 'rgba(120,255,220,.18)', agua: ['#123a44', '#071a20'], orilla: '#2a353e' },
 };
 
 // ---------------- decoraciones ----------------
@@ -146,6 +149,57 @@ const DECO = {
   },
 };
 
+DECO.tormenta = function (c, h, x, y, ix, iy, t) {
+  if (h < 0.06) { // árbol doblado por el viento
+    sombra(c, x + 10, y + 4, 26, 8);
+    c.strokeStyle = '#3d2b1f'; c.lineWidth = 6; c.lineCap = 'round'; c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x + 6, y - 22, x + 22, y - 36); c.stroke();
+    const sw = Math.sin(t * 3 + h * 50) * 3;
+    for (const [ox, oy, r] of [[22, -40, 14], [34, -38, 11], [12, -44, 10]]) { c.fillStyle = '#3f5a3a'; c.beginPath(); c.ellipse(x + ox + sw, y + oy, r * 1.3, r * 0.8, 0.3, 0, TAU); c.fill(); }
+  } else if (h < 0.14) { // charco con ondas de lluvia
+    c.fillStyle = '#3c4f60'; c.beginPath(); c.ellipse(x, y, 26, 12, h * 9, 0, TAU); c.fill();
+    c.strokeStyle = 'rgba(200,220,240,.45)'; c.lineWidth = 1;
+    for (let k = 0; k < 2; k++) { const q = (t * 1.5 + k * 0.5 + h * 7) % 1; c.beginPath(); c.ellipse(x + (k ? 8 : -6), y + (k ? -2 : 3), 3 + q * 9, (3 + q * 9) * 0.45, 0, 0, TAU); c.globalAlpha = 1 - q; c.stroke(); c.globalAlpha = 1; }
+  } else if (h < 0.22) roca(c, x, y, 1.3, '#3d454d', '#58626b');
+  else if (h < 0.32) { c.strokeStyle = '#4f6a48'; c.lineWidth = 2; const sw = Math.sin(t * 4 + h * 30) * 3; for (let k = -2; k <= 2; k++) { c.beginPath(); c.moveTo(x + k * 4, y + 4); c.quadraticCurveTo(x + k * 4 + 6 + sw, y - 4, x + k * 4 + 12 + sw, y - 8); c.stroke(); } }
+  else return false;
+  return true;
+};
+DECO.cristal = function (c, h, x, y, ix, iy, t) {
+  const glow = 0.6 + Math.sin(t * 2 + h * 40) * 0.25, cols = ['#9b8cff', '#6fe3ff', '#ff9bd8'], col = cols[(ix + iy * 3 + 99) % 3 | 0] || cols[0];
+  if (h < 0.08) { // racimo de cristales
+    const g = c.createRadialGradient(x, y - 14, 2, x, y - 14, 46); g.addColorStop(0, col + Math.round(glow * 120).toString(16).padStart(2, '0')); g.addColorStop(1, col + '00');
+    c.fillStyle = g; c.beginPath(); c.arc(x, y - 14, 46, 0, TAU); c.fill();
+    for (const [ox, hh, w, a] of [[-10, 30, 8, -0.3], [0, 44, 10, 0], [11, 26, 7, 0.35], [5, 18, 6, 0.6]]) {
+      c.save(); c.translate(x + ox, y); c.rotate(a); c.fillStyle = col; c.strokeStyle = '#ffffffaa'; c.lineWidth = 1.2;
+      c.beginPath(); c.moveTo(-w / 2, 0); c.lineTo(-w / 2, -hh * 0.75); c.lineTo(0, -hh); c.lineTo(w / 2, -hh * 0.75); c.lineTo(w / 2, 0); c.closePath(); c.fill(); c.stroke();
+      c.fillStyle = 'rgba(255,255,255,.35)'; c.fillRect(-w / 2 + 1, -hh * 0.7, w * 0.3, hh * 0.6); c.restore();
+    }
+  } else if (h < 0.18) { c.fillStyle = col; c.globalAlpha = 0.8; c.beginPath(); c.moveTo(x - 4, y + 3); c.lineTo(x, y - 12); c.lineTo(x + 4, y + 3); c.closePath(); c.fill(); c.globalAlpha = 1; }
+  else if (h < 0.24) roca(c, x, y, 1.2, '#26223a', '#3a3554');
+  else if (h < 0.32) { c.fillStyle = `rgba(120,240,255,${glow * 0.6})`; for (let k = 0; k < 5; k++) { c.beginPath(); c.arc(x + (hash(ix + k, iy) - 0.5) * 40, y + (hash(ix, iy + k) - 0.5) * 30, 1.8, 0, TAU); c.fill(); } }
+  else return false;
+  return true;
+};
+DECO.gruta = function (c, h, x, y, ix, iy, t) {
+  const glow = 0.6 + Math.sin(t * 1.5 + h * 60) * 0.3;
+  if (h < 0.08) { // hongos luminosos
+    for (const [ox, oy, r, col] of [[-8, 0, 9, '#4ff0d0'], [7, 4, 7, '#ff7ad9'], [0, -6, 6, '#4ff0d0']]) {
+      const g = c.createRadialGradient(x + ox, y + oy - 6, 1, x + ox, y + oy - 6, r * 3); g.addColorStop(0, col + Math.round(glow * 140).toString(16).padStart(2, '0')); g.addColorStop(1, col + '00');
+      c.fillStyle = g; c.beginPath(); c.arc(x + ox, y + oy - 6, r * 3, 0, TAU); c.fill();
+      c.fillStyle = '#d8d2c0'; c.fillRect(x + ox - 1.5, y + oy - 6, 3, 8);
+      c.fillStyle = col; c.beginPath(); c.arc(x + ox, y + oy - 6, r, Math.PI, 0); c.fill();
+    }
+  } else if (h < 0.15) { // estalagmita
+    sombra(c, x + 4, y + 2, 12, 4); c.fillStyle = '#4a5560'; c.beginPath(); c.moveTo(x - 10, y + 2); c.lineTo(x - 2, y - 34); c.lineTo(x + 3, y - 30); c.lineTo(x + 10, y + 2); c.closePath(); c.fill();
+    c.fillStyle = '#5f6b77'; c.beginPath(); c.moveTo(x - 4, y); c.lineTo(x - 2, y - 30); c.lineTo(x + 1, y); c.closePath(); c.fill();
+  } else if (h < 0.22) { // laguna luminosa
+    const g = c.createRadialGradient(x, y, 2, x, y, 34); g.addColorStop(0, `rgba(80,240,220,${glow * 0.8})`); g.addColorStop(1, 'rgba(80,240,220,0)');
+    c.fillStyle = g; c.beginPath(); c.arc(x, y, 34, 0, TAU); c.fill(); c.fillStyle = '#0f4a52'; c.beginPath(); c.ellipse(x, y, 22, 10, h * 8, 0, TAU); c.fill();
+  } else if (h < 0.35) { c.fillStyle = `rgba(120,255,220,${glow * 0.5})`; for (let k = 0; k < 4; k++) { c.beginPath(); c.arc(x + (hash(ix + k, iy) - 0.5) * 40, y + (hash(ix, iy + k) - 0.5) * 30, 1.6, 0, TAU); c.fill(); } }
+  else return false;
+  return true;
+};
+
 // Suelo infinito por baldosas. cx, cy = centro de la cámara; hw, hh = media vista
 function drawGround(c, tema, cx, cy, hw, hh, t = 0) {
   const th = TEMAS[tema] || TEMAS.playa, deco = DECO[tema] || DECO.playa, T = 110;
@@ -210,6 +264,19 @@ function drawPreview(c, tema, w, h, t, seed = 0) {
     c.fillStyle = '#3d2f24'; c.beginPath(); c.moveTo(-70, -8); c.lineTo(60, -14); c.quadraticCurveTo(80, 0, 60, 14); c.lineTo(-70, 8); c.closePath(); c.fill();
     c.fillStyle = '#5c4630'; c.fillRect(-10, -60, 6, 60);
     c.fillStyle = 'rgba(220,220,200,.7)'; c.beginPath(); c.moveTo(-4, -56); c.lineTo(26, -40); c.lineTo(-4, -22); c.closePath(); c.fill();
+  } else if (tema === 'tormenta') {
+    c.fillStyle = 'rgba(40,48,60,.85)';
+    for (const [ox, oy, r] of [[-50, -70, 34], [-10, -82, 40], [36, -72, 32], [10, -60, 30]]) { c.beginPath(); c.arc(ox + Math.sin(t + ox) * 3, oy, r, 0, TAU); c.fill(); }
+    if (Math.sin(t * 2.3) > 0.8) { c.strokeStyle = '#fff6b0'; c.lineWidth = 4; c.beginPath(); c.moveTo(0, -55); c.lineTo(-12, -20); c.lineTo(4, -18); c.lineTo(-8, 18); c.stroke(); }
+  } else if (tema === 'cristal') {
+    for (const [ox, hh, w, col] of [[-40, 70, 22, '#9b8cff'], [0, 100, 28, '#6fe3ff'], [38, 64, 20, '#ff9bd8']]) {
+      c.fillStyle = col; c.strokeStyle = '#ffffffaa'; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(ox - w / 2, 30); c.lineTo(ox - w / 2, 30 - hh * 0.75); c.lineTo(ox, 30 - hh); c.lineTo(ox + w / 2, 30 - hh * 0.75); c.lineTo(ox + w / 2, 30); c.closePath(); c.fill(); c.stroke();
+    }
+  } else if (tema === 'gruta') {
+    c.fillStyle = '#3c4650'; c.beginPath(); c.ellipse(0, 0, 80, 50, 0, Math.PI, 0); c.fill();
+    c.fillStyle = '#060c10'; c.beginPath(); c.ellipse(0, 4, 46, 34, 0, Math.PI, 0); c.fill();
+    const g = c.createRadialGradient(0, -6, 2, 0, -6, 40); g.addColorStop(0, 'rgba(80,240,220,.6)'); g.addColorStop(1, 'rgba(80,240,220,0)'); c.fillStyle = g; c.beginPath(); c.arc(0, -6, 40, 0, TAU); c.fill();
   } else if (tema === 'desierto') {
     c.fillStyle = '#d9a35f'; c.beginPath(); c.moveTo(-60, 26); c.lineTo(-10, -40); c.lineTo(40, 26); c.closePath(); c.fill();
     c.fillStyle = '#c38c4c'; c.beginPath(); c.moveTo(-10, -40); c.lineTo(40, 26); c.lineTo(10, 26); c.closePath(); c.fill();
@@ -228,6 +295,9 @@ const CLIMA = {
   jungla:   { n: 26, spawn: (W, H) => ({ x: Math.random() * W, y: Math.random() * H, vx: (Math.random() - 0.5) * 20, vy: (Math.random() - 0.5) * 20, r: 2, ph: Math.random() * TAU }) },
   desierto: { n: 34, spawn: (W, H, init) => ({ x: init ? Math.random() * W : -30, y: Math.random() * H, vx: 260 + Math.random() * 160, vy: (Math.random() - 0.5) * 20, r: 10 + Math.random() * 25, ph: 0 }) },
   fantasma: { n: 12, spawn: (W, H, init) => ({ x: init ? Math.random() * W : -200, y: Math.random() * H, vx: 10 + Math.random() * 15, vy: 0, r: 90 + Math.random() * 120, ph: Math.random() * TAU }) },
+  tormenta: { n: 90, spawn: (W, H, init) => ({ x: Math.random() * (W + 200), y: init ? Math.random() * H : -20, vx: -140, vy: 700 + Math.random() * 200, r: 12 + Math.random() * 10, ph: 0 }) },
+  cristal:  { n: 40, spawn: (W, H) => ({ x: Math.random() * W, y: Math.random() * H, vx: 0, vy: -6, r: 1 + Math.random() * 2, ph: Math.random() * TAU }) },
+  gruta:    { n: 40, spawn: (W, H, init) => ({ x: Math.random() * W, y: init ? Math.random() * H : H + 10, vx: (Math.random() - 0.5) * 10, vy: -(8 + Math.random() * 18), r: 1.5 + Math.random() * 2, ph: Math.random() * TAU }) },
   playa:    { n: 6, spawn: (W, H, init) => ({ x: init ? Math.random() * W : -40, y: Math.random() * H * 0.6, vx: 40 + Math.random() * 30, vy: (Math.random() - 0.5) * 10, r: 1, ph: Math.random() * TAU }) },
 };
 const AMB = { tema: null, ps: [] };
@@ -248,6 +318,9 @@ function ambient(c, tema, W, H, dt, t) {
       case 'jungla': { const a = 0.4 + Math.sin(p.ph * 2) * 0.4; c.fillStyle = `rgba(220,255,120,${a})`; c.beginPath(); c.arc(p.x, p.y, p.r, 0, TAU); c.fill(); c.fillStyle = `rgba(220,255,120,${a * 0.25})`; c.beginPath(); c.arc(p.x, p.y, p.r * 4, 0, TAU); c.fill(); break; }
       case 'desierto': c.strokeStyle = 'rgba(240,210,150,.35)'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(p.x, p.y); c.lineTo(p.x - p.r, p.y); c.stroke(); break;
       case 'fantasma': c.fillStyle = 'rgba(200,225,230,.07)'; c.beginPath(); c.ellipse(p.x, p.y, p.r, p.r * 0.35, 0, 0, TAU); c.fill(); break;
+      case 'tormenta': c.strokeStyle = 'rgba(190,210,235,.35)'; c.lineWidth = 1.2; c.beginPath(); c.moveTo(p.x, p.y); c.lineTo(p.x + p.vx * 0.02, p.y - p.r); c.stroke(); break;
+      case 'cristal': { const a = Math.max(0, Math.sin(p.ph * 2)); c.fillStyle = `rgba(200,240,255,${a})`; c.beginPath(); c.moveTo(p.x, p.y - p.r * 3); c.lineTo(p.x + p.r, p.y); c.lineTo(p.x, p.y + p.r * 3); c.lineTo(p.x - p.r, p.y); c.closePath(); c.fill(); break; }
+      case 'gruta': { const a = 0.4 + Math.sin(p.ph * 2) * 0.3; c.fillStyle = `rgba(120,255,220,${a})`; c.beginPath(); c.arc(p.x + Math.sin(p.ph) * 6, p.y, p.r, 0, TAU); c.fill(); break; }
       case 'playa': { // gaviotas lejanas
         c.strokeStyle = 'rgba(60,60,60,.45)'; c.lineWidth = 1.5; const f = Math.sin(p.ph * 3) * 3;
         c.beginPath(); c.moveTo(p.x - 7, p.y - f); c.quadraticCurveTo(p.x - 3, p.y - 4, p.x, p.y); c.quadraticCurveTo(p.x + 3, p.y - 4, p.x + 7, p.y - f); c.stroke(); break;
@@ -264,6 +337,9 @@ function overlay(c, tema, W, H, t) {
     case 'nieve': c.fillStyle = 'rgba(190,225,255,.08)'; c.fillRect(0, 0, W, H); vig('120,160,200', 0.3); break;
     case 'volcan': vig('140,20,0', 0.45 + Math.sin(t * 1.5) * 0.05); break;
     case 'fantasma': c.fillStyle = 'rgba(10,25,45,.32)'; c.fillRect(0, 0, W, H); vig('0,0,0', 0.55); break;
+    case 'tormenta': c.fillStyle = 'rgba(20,28,40,.3)'; c.fillRect(0, 0, W, H); vig('0,0,10', 0.5); break;
+    case 'cristal': vig('40,10,70', 0.5); break;
+    case 'gruta': c.fillStyle = 'rgba(0,8,14,.35)'; c.fillRect(0, 0, W, H); vig('0,0,0', 0.7); break;
     default: vig('0,40,80', 0.15);
   }
 }

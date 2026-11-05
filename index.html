@@ -154,6 +154,33 @@
     .home-top{flex-direction:column;gap:6px}
     .arrow{width:40px;height:40px;font-size:16px}
   }
+  #powers{position:fixed;right:14px;bottom:44px;display:flex;gap:12px;z-index:6}
+  .pw{--cd:0;--col:#7fd3ff;position:relative;width:66px;height:66px;border-radius:50%;border:3px solid var(--col);background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.25),rgba(10,20,35,.85));color:#fff;cursor:pointer;box-shadow:0 0 14px var(--col);touch-action:none;overflow:hidden;padding:0}
+  .pw::after{content:'';position:absolute;inset:0;border-radius:50%;background:conic-gradient(rgba(0,0,0,.7) calc(var(--cd)*360deg),transparent 0);pointer-events:none}
+  .pw.low{filter:grayscale(.85) brightness(.7)}
+  .pw .pi{font-size:30px;line-height:60px}
+  .pw .pk{position:absolute;top:3px;left:50%;transform:translateX(-50%);font:900 10px Nunito,sans-serif;opacity:.85}
+  .pw .pc{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);font:900 10px Nunito,sans-serif;color:var(--col)}
+  .home-orden{font-size:14px;margin-bottom:6px;text-shadow:0 1px 0 #000}
+  .ordlist{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;text-align:left;margin:12px 0}
+  .orden{--col:#fff;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(0,0,0,.25));border:3px solid var(--col);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px}
+  .orden.activa{box-shadow:0 0 18px var(--col)}
+  .orden.bloq{opacity:.75}
+  .orden.bloq canvas{filter:grayscale(1)}
+  .orden .oh{display:flex;gap:10px;align-items:center}
+  .orden .on{font-family:'Pirata One',serif;font-size:22px;color:var(--col);line-height:1}
+  .orden .ol{font-style:italic;font-size:13px;opacity:.9}
+  .orden .oc{font-size:12px;opacity:.75}
+  .orden .orank{font-size:13px}
+  .orden .bar{height:7px;background:rgba(0,0,0,.4);border-radius:4px;overflow:hidden;margin-top:4px}
+  .orden .bar i{display:block;height:100%;background:var(--col)}
+  .orden .opw{font-size:14px;display:flex;flex-direction:column;gap:6px}
+  .orden .opw .k{display:inline-block;background:var(--col);color:#000;border-radius:4px;padding:0 5px;font-weight:900;font-size:11px}
+  .orden .oesp{font-size:13px;background:rgba(0,0,0,.25);border-radius:8px;padding:6px 8px}
+  .card.ord-card{background:linear-gradient(180deg,#eef6ff,#cfe0f2);box-shadow:0 4px 0 #000,0 0 14px var(--col)}
+  .card.ord-card .lv{color:#1d3d6b}
+  .orden .ojur{font-size:12px;opacity:.9;display:flex;flex-direction:column;gap:2px}
+  .orden .ojur .lock{opacity:.6}
   @media (max-width:520px){
     .loots{grid-template-columns:1fr 1fr}
     .regstats{grid-template-columns:repeat(3,1fr)}
@@ -176,6 +203,10 @@
 </head>
 <body>
 <canvas id="c"></canvas>
+<div id="powers" style="display:none">
+  <button id="pw0" class="pw"><span class="pk">Q</span><span class="pi"></span><span class="pc"></span></button>
+  <button id="pw1" class="pw"><span class="pk">E</span><span class="pi"></span><span class="pc"></span></button>
+</div>
 <div id="topbtns" style="display:none"><button id="bPause" aria-label="Pausa">⏸</button><button id="bMute" aria-label="Sonido">🔊</button></div>
 
 <div id="menu" class="ov show home">
@@ -185,6 +216,7 @@
   </div>
   <div class="home-grid">
     <div class="home-side">
+      <button id="bOrd" class="mbtn">🛡️<span>Órdenes</span></button>
       <button id="bShop" class="mbtn">⚓<span>Astillero</span></button>
       <button id="bCofre" class="mbtn">🎁<span>Cofre</span></button>
       <button id="bInv" class="mbtn">🎒<span>Inventario</span></button>
@@ -202,6 +234,7 @@
       <div id="islaDesc" class="isla-desc"></div>
       <div id="islaInfo" class="isla-info"></div>
       <div id="islaDots" class="isla-dots"></div>
+      <div id="homeOrden" class="home-orden"></div>
       <button id="bPlay" class="big">Zarpar</button>
     </div>
     <div class="home-side">
@@ -213,12 +246,21 @@
   <div id="best" class="home-best"></div>
 </div>
 
+<div id="ordenes" class="ov"><div class="panel wide">
+  <h2 id="ordTitulo">Órdenes</h2>
+  <div class="sub" style="margin:0">Elige tu orden: te da dos poderes (Q y E) y un compañero. Juega con ella para pronunciar juramentos y subir de rango.</div>
+  <div id="ordGold" class="goldline"></div>
+  <div id="ordList" class="ordlist"></div>
+  <button class="big back">Volver</button>
+</div></div>
+
 <div id="ayuda" class="ov"><div class="panel">
   <h2>Cómo jugar</h2>
   <div class="help">
     <p>🕹️ <b>Mover:</b> WASD / flechas, o arrastra el dedo en la pantalla.</p>
     <p>⚔️ <b>Atacar:</b> automático. Recoge monedas para subir de nivel y elige mejoras.</p>
     <p>🏝️ <b>Islas:</b> aguanta 5 minutos en una isla para desbloquear la siguiente. Cada isla es más difícil y da más Berries.</p>
+    <p>🛡️ <b>Órdenes:</b> elige una en el menú. Usa sus poderes con <b>Q</b> y <b>E</b> (o los botones redondos en el móvil); gastan Resonancia, que se recarga sola y con las conchas que sueltan los enemigos.</p>
     <p>🍈 <b>Frutas de poder:</b> caen de los enemigos y dan poderes durante unos segundos.</p>
     <p>🪙 <b>Berries:</b> se ganan al terminar cada partida. Úsalos en el Astillero, el Cofre y para desbloquear piratas.</p>
     <p>⏸️ <b>Pausa:</b> P / Esc o el botón de arriba a la derecha.</p>
