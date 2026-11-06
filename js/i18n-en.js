@@ -79,6 +79,11 @@ window.MDR_I18N_EN = {
     '🎮 Stick: moverte · X/LB y Y/RB: poderes · Start: pausa': '🎮 Stick: move · X/LB and Y/RB: powers · Start: pause',
     '📱 Arrastra en la pantalla para moverte · Toca los botones de poder': '📱 Drag on the screen to move · Tap the power buttons',
     '⌨️ WASD / flechas: moverte · Q / E: poderes · Esc: pausa': '⌨️ WASD / arrows: move · Q / E: powers · Esc: pause',
+    'Modo admin': 'Admin mode', 'Solo afecta a la partida guardada en este dispositivo.': 'Only affects the save on this device.',
+    '🪙 +100.000 Doblones de Faro': '🪙 +100,000 Beacon Doubloons', '🔓 Desbloquear piratas, Órdenes e islas': '🔓 Unlock pirates, Orders and islands',
+    '⚓ Astillero al máximo': '⚓ Max out the Shipyard', '🎁 Todos los tesoros a nivel máximo': '🎁 All treasures at max level',
+    '📜 Órdenes en rango Leyenda': '📜 All Orders at Legend rank', '✅ Completar todas las misiones': '✅ Complete all missions',
+    '🗑️ Borrar la partida guardada': '🗑️ Delete saved game', '¿Borrar toda la partida guardada?': 'Delete the whole saved game?', '✔ Hecho: {0}': '✔ Done: {0}',
     controlsHint: `⌨️ WASD / arrows: move · Q / E: powers · Esc / P: pause · 1-4: pick upgrade<br>🎮 Controller: stick or d-pad: move · X / LB and Y / RB: powers · Start: pause · A: accept · B: back<br>📱 Touch: drag anywhere to move`,
   },
   config: {

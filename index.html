@@ -211,6 +211,7 @@
   /* foco visible para teclado y mando */
   button:focus-visible,.card:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:3px;box-shadow:0 0 0 6px rgba(246,201,69,.6)}
   .padnav button.pfocus,.padnav .card.pfocus{outline:3px solid #fff;outline-offset:3px;box-shadow:0 0 0 6px rgba(246,201,69,.6)}
+  button.adm{display:block;width:100%;margin:6px 0;text-align:left}
 </style>
 </head>
 <body>
@@ -360,6 +361,20 @@
   <label class="opt chk"><span>🔢 Números de daño</span><input type="checkbox" id="oNums"></label>
   <div class="opt" id="oLangRow"><span>🌐 Idioma</span><span><button class="ghost sm" id="oLangEs">Español</button><button class="ghost sm" id="oLangEn">English</button></span></div>
   <div class="hint" data-i18n-html="controlsHint">⌨️ WASD / flechas: moverse · Q / E: poderes · Esc / P: pausa · 1-4: elegir mejora<br>🎮 Mando: stick o cruceta: moverse · X / LB y Y / RB: poderes · Start: pausa · A: aceptar · B: volver<br>📱 Táctil: arrastra en cualquier parte para moverte</div>
+  <button class="ghost back">Volver</button>
+</div></div>
+
+<div id="admin" class="ov"><div class="panel">
+  <h2>Modo admin</h2>
+  <div class="sub">Solo afecta a la partida guardada en este dispositivo.</div>
+  <button class="ghost adm" data-a="oro">🪙 +100.000 Doblones de Faro</button>
+  <button class="ghost adm" data-a="todo">🔓 Desbloquear piratas, Órdenes e islas</button>
+  <button class="ghost adm" data-a="mejoras">⚓ Astillero al máximo</button>
+  <button class="ghost adm" data-a="tesoros">🎁 Todos los tesoros a nivel máximo</button>
+  <button class="ghost adm" data-a="rangos">📜 Órdenes en rango Leyenda</button>
+  <button class="ghost adm" data-a="misiones">✅ Completar todas las misiones</button>
+  <button class="ghost adm" data-a="borrar">🗑️ Borrar la partida guardada</button>
+  <div id="admMsg" class="hint"></div>
   <button class="ghost back">Volver</button>
 </div></div>
 
