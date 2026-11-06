@@ -1,5 +1,9 @@
 # Cambios
 
+## 1.2.0
+- **Móvil en horizontal:** la portada se reorganiza a lo ancho (menús a los lados, la isla junto a su información y el botón Zarpar visible sin desplazar), la pantalla final pone el cartel a la izquierda y los botones a la derecha, y los menús y cartas son más compactos.
+- Modo admin oculto (7 toques en el título) y mejoras de UX y accesibilidad (foco, botones de 44 px, barra de vida, contraste).
+
 ## 1.1.0: Estudio completo (Claude Code Game Studios)
 
 ### Para jugadores
