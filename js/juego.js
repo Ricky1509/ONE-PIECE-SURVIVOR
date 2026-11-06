@@ -1971,21 +1971,178 @@ function pullOne(minRank) {
   if (cur < COFRE.nivelMax) { SAVE.inv[id] = cur + 1; return { id, tag: t('Sube a Nv {0}', cur + 1) }; }
   const rb = COFRE.reembolso[rar] || 0; SAVE.berries += rb; return { id, tag: t('Máximo: +{0} 🪙', fmt(rb)) };
 }
+// ---------- Animación del Cofre del Tesoro ----------
+// El cofre cae, tiembla y brilla por la rendija; al abrirse salen rayos de luz,
+// partículas y el tesoro. Color e intensidad según la mejor rareza obtenida;
+// en Épico y Legendario la luz empieza blanca y cambia de color (suspense).
+// Tocar, pulsar una tecla o A/B del mando adelanta la animación.
+const CFX = (() => {
+  const el = $('#chestFx'), cv = el.querySelector('canvas'), c = cv.getContext('2d');
+  let active = false, t = 0, last = 0, tOpen = 1, tEnd = 3, res = [], best = null, rank = 0, col = '#fff', done = null, parts = [], burst = false, raf = 0;
+  const easeOutBack = x => 1 + 2.7 * Math.pow(x - 1, 3) + 1.7 * Math.pow(x - 1, 2);
+  function sounds() {
+    if (!AC || muted) return;
+    try {
+      // tensión: retumbo y tono que sube hasta abrir
+      noise(tOpen, 0.08 + rank * 0.03, 'lowpass', 220, 520 + rank * 200, 1, 0, tOpen * 0.8);
+      tone('triangle', 140, 260 + rank * 140, tOpen, 0.05 + rank * 0.015, 0, tOpen * 0.9);
+      // apertura: golpe + arpegio más largo cuanto más rara
+      noise(0.5, 0.25 + rank * 0.07, 'bandpass', 3000, 600, 0.8, tOpen);
+      tone('sine', 110, 40, 0.5, 0.3 + rank * 0.05, tOpen);
+      const notas = [[784, 988], [784, 988, 1175], [659, 784, 988, 1319], [523, 659, 784, 1047, 1319, 1568]][rank];
+      notas.forEach((f, i) => { tone('triangle', f, f, 0.6 + rank * 0.25, 0.1, tOpen + 0.05 + i * 0.07); tone('sine', f * 2, f * 2, 0.4, 0.035, tOpen + 0.05 + i * 0.07); });
+      if (rank >= 2) noise(1.6 + rank * 0.4, 0.05, 'highpass', 7000, 9000, 1, tOpen + 0.1, 0.3); // brillo
+      if (rank === 3) { tone('sawtooth', 65, 65, 1.6, 0.08, tOpen, 0.05); tone('sawtooth', 98, 98, 1.6, 0.06, tOpen, 0.05); }
+    } catch (e) {}
+  }
+  function resize() { const d = Math.min(devicePixelRatio || 1, 2); cv.width = innerWidth * d; cv.height = innerHeight * d; c.setTransform(d, 0, 0, d, 0, 0); }
+  function drawChest(cx, cy, s, lidA, glow, glowCol) {
+    const w = 120 * s, h = 58 * s, lh = 36 * s;
+    c.save(); c.translate(cx, cy);
+    // sombra
+    c.fillStyle = 'rgba(0,0,0,.45)'; c.beginPath(); c.ellipse(0, h + 6 * s, w * 0.62, 10 * s, 0, 0, TAU); c.fill();
+    // luz por la rendija / boca del cofre
+    if (glow > 0) {
+      const g = c.createRadialGradient(0, 0, 4 * s, 0, 0, 120 * s * (0.6 + glow));
+      g.addColorStop(0, glowCol); g.addColorStop(1, glowCol + '00');
+      c.globalAlpha = Math.min(1, glow); c.fillStyle = g; c.beginPath(); c.arc(0, 0, 120 * s * (0.6 + glow), 0, TAU); c.fill(); c.globalAlpha = 1;
+    }
+    // cuerpo de madera
+    let g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#8b5a2b'); g.addColorStop(1, '#5a3517');
+    c.fillStyle = g; c.strokeStyle = '#2a1606'; c.lineWidth = 3 * s;
+    c.beginPath(); c.roundRect(-w / 2, 0, w, h, 6 * s); c.fill(); c.stroke();
+    c.strokeStyle = 'rgba(0,0,0,.25)'; c.lineWidth = 1.5 * s;
+    for (const yy of [h * 0.35, h * 0.68]) { c.beginPath(); c.moveTo(-w / 2 + 4 * s, yy); c.lineTo(w / 2 - 4 * s, yy); c.stroke(); }
+    // bandas y cerradura doradas
+    c.fillStyle = '#f2c14e'; c.strokeStyle = '#7a5a10'; c.lineWidth = 1.5 * s;
+    for (const bx of [-w * 0.33, w * 0.33]) { c.fillRect(bx - 6 * s, 0, 12 * s, h); c.strokeRect(bx - 6 * s, 0, 12 * s, h); }
+    c.beginPath(); c.roundRect(-11 * s, 4 * s, 22 * s, 26 * s, 4 * s); c.fill(); c.stroke();
+    c.fillStyle = '#2a1606'; c.beginPath(); c.arc(0, 14 * s, 3.5 * s, 0, TAU); c.fill(); c.fillRect(-1.5 * s, 14 * s, 3 * s, 8 * s);
+    // boca abierta (interior con luz)
+    if (lidA > 0.15) {
+      const og = c.createLinearGradient(0, -8 * s, 0, 4 * s); og.addColorStop(0, glowCol); og.addColorStop(1, '#2a1606');
+      c.fillStyle = og; c.beginPath(); c.ellipse(0, 0, w / 2 - 4 * s, 9 * s * Math.min(1, lidA), 0, 0, TAU); c.fill();
+    }
+    // tapa: gira hacia atrás (se aplana, sube y muestra el interior)
+    const cs = Math.cos(lidA), up = Math.sin(lidA) * lh * 0.55;
+    c.save(); c.translate(0, -up); c.scale(1, Math.max(0.18, Math.abs(cs)));
+    g = c.createLinearGradient(0, -lh, 0, 0);
+    if (cs >= 0) { g.addColorStop(0, '#a46a33'); g.addColorStop(1, '#6b4019'); } else { g.addColorStop(0, '#3a2210'); g.addColorStop(1, '#5a3517'); }
+    c.fillStyle = g; c.strokeStyle = '#2a1606'; c.lineWidth = 3 * s;
+    c.beginPath(); c.moveTo(-w / 2, 0); c.lineTo(-w / 2, -lh * 0.45); c.quadraticCurveTo(0, -lh * 1.35, w / 2, -lh * 0.45); c.lineTo(w / 2, 0); c.closePath(); c.fill(); c.stroke();
+    if (cs >= 0) { c.fillStyle = '#f2c14e'; for (const bx of [-w * 0.33, w * 0.33]) c.fillRect(bx - 6 * s, -lh * 0.95, 12 * s, lh * 0.95); }
+    c.restore();
+    // rendija luminosa con la tapa cerrada
+    if (lidA < 0.15 && glow > 0) { c.strokeStyle = glowCol; c.globalAlpha = Math.min(1, glow * 1.4); c.lineWidth = 3 * s; c.beginPath(); c.moveTo(-w / 2 + 3 * s, 0); c.lineTo(w / 2 - 3 * s, 0); c.stroke(); c.globalAlpha = 1; }
+    c.restore();
+  }
+  function frame(now) {
+    if (!active) return;
+    const dt = Math.min(0.05, (now - last) / 1000); last = now; t += dt;
+    const W = innerWidth, H = innerHeight, s = Math.min(W, H) / 330, cx = W / 2, baseY = H * 0.6;
+    c.clearRect(0, 0, W, H);
+    // fondo
+    const bg = c.createRadialGradient(cx, baseY, 10, cx, baseY, Math.max(W, H) * 0.8);
+    bg.addColorStop(0, '#1e2846'); bg.addColorStop(1, '#03060e'); c.fillStyle = bg; c.fillRect(0, 0, W, H);
+    const tease = rank >= 2 && t < tOpen * 0.55, gc = tease ? '#ffffff' : col;
+    const pre = Math.min(1, t / tOpen), opened = t >= tOpen, k = opened ? Math.min(1, (t - tOpen) / 0.35) : 0;
+    // caída inicial y temblor creciente
+    const drop = Math.min(1, t / 0.35), y0 = baseY - (1 - easeOutBack(drop)) * H * 0.7;
+    const sh = (!opened && OPT.shake) ? pre * pre * (2 + rank * 2.5) * s : 0;
+    const cxs = cx + (Math.random() - 0.5) * 2 * sh, cys = y0 + (Math.random() - 0.5) * sh;
+    // rayos de luz
+    if (opened) {
+      const n = 10 + rank * 5, L = Math.hypot(W, H), a0 = (t - tOpen) * (0.25 + rank * 0.1);
+      c.save(); c.translate(cx, baseY - 4 * s); c.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < n; i++) {
+        const a = -Math.PI / 2 + Math.sin(a0 + i * 2.4) * 1.1, wdt = 0.04 + (i % 3) * 0.025;
+        const rg = c.createLinearGradient(0, 0, Math.cos(a) * L, Math.sin(a) * L); rg.addColorStop(0, col + 'cc'); rg.addColorStop(1, col + '00');
+        c.globalAlpha = k * (0.35 + 0.15 * rank) * (0.6 + 0.4 * Math.sin(t * 3 + i)); c.fillStyle = rg;
+        c.beginPath(); c.moveTo(0, 0); c.lineTo(Math.cos(a - wdt) * L, Math.sin(a - wdt) * L); c.lineTo(Math.cos(a + wdt) * L, Math.sin(a + wdt) * L); c.fill();
+      }
+      c.restore(); c.globalAlpha = 1;
+    }
+    drawChest(cxs, cys, s, opened ? easeOutBack(k) * 1.9 : 0, opened ? 1 + rank * 0.25 : pre * (0.6 + rank * 0.15), gc);
+    // chispas que escapan antes de abrir
+    if (!opened && Math.random() < pre * (0.3 + rank * 0.2)) parts.push({ x: cxs + (Math.random() - 0.5) * 100 * s, y: cys, vx: (Math.random() - 0.5) * 60, vy: -60 - Math.random() * 120, t: 0.6, c: gc, r: 2 * s });
+    // explosión al abrir
+    if (opened && !burst) {
+      burst = true; if (OPT.shake) shakeEl();
+      for (let i = 0; i < 40 + rank * 35; i++) { const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.6, sp = (200 + Math.random() * 420) * s / 2; parts.push({ x: cx, y: baseY, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: 1 + Math.random() * 0.8, c: Math.random() < 0.35 ? '#ffd95e' : col, r: (1.5 + Math.random() * 3) * s, g: 1 }); }
+    }
+    c.globalCompositeOperation = 'lighter';
+    for (const p of parts) { p.t -= dt; p.x += p.vx * dt; p.y += p.vy * dt; if (p.g) p.vy += 260 * dt; c.globalAlpha = Math.max(0, Math.min(1, p.t * 1.5)); c.fillStyle = p.c; c.beginPath(); c.arc(p.x, p.y, p.r, 0, TAU); c.fill(); }
+    parts = parts.filter(p => p.t > 0); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
+    // destello al abrir
+    if (opened) { const f = Math.max(0, 1 - (t - tOpen) / (0.45 + rank * 0.15)); if (f > 0) { c.globalAlpha = f * (OPT.flashes ? 0.55 + rank * 0.1 : 0.12); c.fillStyle = rank === 3 ? '#fff6d0' : col; c.fillRect(0, 0, W, H); c.globalAlpha = 1; } }
+    // el tesoro sale del cofre
+    const ti = t - tOpen - 0.2;
+    if (ti > 0 && best) {
+      const it = TESOROS[best.id], q = Math.min(1, ti / 0.6), e = easeOutBack(q), iy = baseY - 10 * s - e * 115 * s, sc = 0.3 + e * 1.0;
+      const hg = c.createRadialGradient(cx, iy, 4, cx, iy, 70 * s * sc); hg.addColorStop(0, col + 'ee'); hg.addColorStop(1, col + '00');
+      c.fillStyle = hg; c.beginPath(); c.arc(cx, iy, 70 * s * sc, 0, TAU); c.fill();
+      c.font = `${Math.round(54 * s * sc)}px system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText(it.icono, cx, iy + Math.sin(t * 3) * 3 * s);
+      // otros tesoros (tirada x10): salen en abanico
+      if (res.length > 1) res.forEach((r, i) => {
+        if (r === best) return; const a = -Math.PI + (i + 0.5) / res.length * Math.PI, R = 95 * s * e;
+        c.globalAlpha = q; c.font = `${Math.round(22 * s)}px system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
+        c.fillText(TESOROS[r.id].icono, cx + Math.cos(a) * R * 1.5, iy + 20 * s + Math.sin(a) * R * 0.7); c.globalAlpha = 1;
+      });
+      if (ti > 0.45) {
+        const ta = Math.min(1, (ti - 0.45) / 0.3), rz = RAREZAS[it.rareza] || RAREZAS.comun;
+        c.globalAlpha = ta; c.lineWidth = 5; c.strokeStyle = '#000';
+        c.font = `900 ${Math.round(15 * s)}px Nunito, sans-serif`; c.fillStyle = col;
+        const lab = rz.nombre.toUpperCase() + (res.length > 1 ? '  ·  ×' + res.length : '');
+        c.strokeText(lab, cx, baseY + 82 * s); c.fillText(lab, cx, baseY + 82 * s);
+        c.font = `${Math.round(22 * s)}px 'Pirata One', serif`; c.fillStyle = '#fff';
+        c.strokeText(it.nombre, cx, baseY + 102 * s); c.fillText(it.nombre, cx, baseY + 102 * s);
+        c.globalAlpha = 1;
+      }
+    }
+    if (t > tOpen + 0.8) { c.globalAlpha = 0.6 + 0.3 * Math.sin(t * 4); c.font = `700 ${Math.round(Math.max(12, 8 * s))}px Nunito, sans-serif`; c.fillStyle = '#fff'; c.textAlign = 'center'; c.fillText(t_('Toca para continuar'), cx, H - 12); c.globalAlpha = 1; }
+    if (t >= tEnd) { finish(); return; }
+    raf = requestAnimationFrame(frame);
+  }
+  const t_ = s => window.t(s);
+  function shakeEl() { if (el.animate) el.animate([{ transform: 'translate(6px,-4px)' }, { transform: 'translate(-6px,4px)' }, { transform: 'none' }], { duration: 120, iterations: 2 }); }
+  function finish() { if (!active) return; active = false; cancelAnimationFrame(raf); el.classList.remove('show'); const f = done; done = null; if (f) f(); }
+  function skip() { if (!active) return; if (t < tOpen) { t = tOpen; } else if (t < tOpen + 0.9) t = tOpen + 0.9; else finish(); }
+  el.addEventListener('pointerdown', e => { e.preventDefault(); skip(); });
+  addEventListener('resize', () => { if (active) resize(); });
+  return {
+    get active() { return active; },
+    skip,
+    /** Reproduce la animación para los resultados `r` ({id}[]) y llama a `cb` al terminar. */
+    play(r, cb) {
+      res = r; best = r.reduce((a, b) => RAR_ORDER.indexOf(TESOROS[b.id].rareza) > RAR_ORDER.indexOf(TESOROS[a.id].rareza) ? b : a, r[0]);
+      rank = Math.max(0, RAR_ORDER.indexOf(TESOROS[best.id].rareza)); col = (RAREZAS[TESOROS[best.id].rareza] || RAREZAS.comun).color;
+      if (rank === 0) col = '#e8f1f2';  // común: luz blanca suave
+      tOpen = 0.9 + rank * 0.35; tEnd = tOpen + 2.6 + rank * 0.3; t = 0; parts = []; burst = false; done = cb;
+      resize(); el.classList.add('show'); active = true; last = performance.now(); sounds(); raf = requestAnimationFrame(frame);
+    },
+  };
+})();
+
 function doPull(n) {
+  if (CFX.active) return;
   const cost = n === 10 ? COFRE.precio10 : COFRE.precio;
   if (SAVE.berries < cost || !Object.keys(TESOROS).length) return;
   SAVE.berries -= cost;
   const res = [];
   for (let i = 0; i < n; i++) res.push(pullOne(n === 10 && i === 9 ? 1 : 0));
   for (const r of res) { const sl = TESOROS[r.id].ranura; if (sl && !SAVE.equip[sl]) SAVE.equip[sl] = r.id; }
-  saveGame(); snd('chest');
+  saveGame(); buildCofre(false);
   const box = $('#pullRes'); box.innerHTML = '';
-  res.forEach((r, i) => {
-    const rz = RAREZAS[TESOROS[r.id].rareza] || RAREZAS.comun, d = document.createElement('div');
-    d.className = 'card loot rar-' + TESOROS[r.id].rareza; d.style.borderColor = rz.color; d.style.animationDelay = (i * 0.08) + 's';
-    d.innerHTML = itemCard(r.id, `<div class="tag">${r.tag}</div>`); box.appendChild(d);
+  // las cartas se muestran cuando termina la animación del cofre
+  CFX.play(res, () => {
+    res.forEach((r, i) => {
+      const rz = RAREZAS[TESOROS[r.id].rareza] || RAREZAS.comun, d = document.createElement('div');
+      d.className = 'card loot rar-' + TESOROS[r.id].rareza; d.style.borderColor = rz.color; d.style.animationDelay = (i * 0.08) + 's';
+      d.innerHTML = itemCard(r.id, `<div class="tag">${r.tag}</div>`); box.appendChild(d);
+    });
+    const b1 = $('#bPull1'); if (b1 && !b1.disabled) b1.focus({ preventScroll: true });
   });
-  buildCofre(false);
 }
 function buildCofre(clear = true) {
   $('#cofGold').textContent = goldLine();
@@ -2228,6 +2385,7 @@ if (!SAVE.partidas && !store.get('mdr_ayuda_vista', false)) { store.set('mdr_ayu
 
 addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
+  if (CFX.active) { e.preventDefault(); CFX.skip(); return; }
   if (state === 'play' && (k.startsWith('arrow') || k === ' ')) e.preventDefault();
   keys.add(k);
   if (G && G.oath && state === 'play') { skipOath(); return; }
@@ -2325,6 +2483,7 @@ function pollPad(dt) {
   if (Math.hypot(x, y) < 0.22) x = y = 0;
   if (b(14)) x = -1; if (b(15)) x = 1; if (b(12)) y = -1; if (b(13)) y = 1;
   PAD.x = x; PAD.y = y;
+  if (CFX.active) { if (hit(0) || hit(1)) CFX.skip(); PAD.prev = gp.buttons.map(q => q.pressed); return; }
   if (!PAD.on && (x || y || gp.buttons.some(q => q.pressed))) { PAD.on = true; document.body.classList.add('padnav'); }
   if (state === 'play') {
     if (G && G.oath) { if (hit(0) || hit(1)) skipOath(); }
@@ -2370,6 +2529,6 @@ document.querySelectorAll('#admin .adm').forEach(b => b.onclick = () => {
 $('#admin .back').onclick = () => closePanel('admin');
 
 // gancho de pruebas
-window.__mdr = { get G() { return G; }, get state() { return state; }, get SAVE() { return SAVE; }, get OPT() { return OPT; }, end: won => { if (G && state === 'play') endGame(!!won); }, oath: r => { if (G && G.orden) startOath(r); } };
+window.__mdr = { get G() { return G; }, get state() { return state; }, get SAVE() { return SAVE; }, get OPT() { return OPT; }, end: won => { if (G && state === 'play') endGame(!!won); }, oath: r => { if (G && G.orden) startOath(r); }, cofre: ids => CFX.play(ids.map(id => ({ id })), () => {}) };
 window.__drawComp = drawCompanion;
 })();

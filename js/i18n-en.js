@@ -85,7 +85,7 @@ window.MDR_I18N_EN = {
     '📜 Órdenes en rango Leyenda': '📜 All Orders at Legend rank', '✅ Completar todas las misiones': '✅ Complete all missions',
     '🗑️ Borrar la partida guardada': '🗑️ Delete saved game', '¿Borrar toda la partida guardada?': 'Delete the whole saved game?', '✔ Hecho: {0}': '✔ Done: {0}',
     'Pausar': 'Pause', 'Máximo': 'Max', 'Te faltan {0} 🪙': 'You need {0} more 🪙',
-    'Quitar': 'Remove', 'Todo': 'All',
+    'Toca para continuar': 'Tap to continue', 'Quitar': 'Remove', 'Todo': 'All',
     controlsHint: `⌨️ WASD / arrows: move · Q / E: powers · Esc / P: pause · 1-4: pick upgrade<br>🎮 Controller: stick or d-pad: move · X / LB and Y / RB: powers · Start: pause · A: accept · B: back<br>📱 Touch: drag anywhere to move`,
   },
   config: {

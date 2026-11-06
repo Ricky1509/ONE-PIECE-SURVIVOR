@@ -1,6 +1,7 @@
 # Cambios
 
 ## 1.2.0
+- **Animación del Cofre:** el cofre cae, tiembla y brilla por la rendija. Al abrirse salen rayos de luz, partículas y el tesoro, con el color de la mejor rareza. En Épico y Legendario la luz empieza blanca y luego cambia de color, y el suspense dura más. Cada rareza tiene su sonido. Se puede adelantar tocando la pantalla, con una tecla o con el mando.
 - **Equipo por partes del cuerpo:** 7 ranuras (Sombrero, Arma, Abrigo, Guantes, Botas, Amuleto y Reliquia). Cada tesoro va en su ranura y hay 12 tesoros nuevos, así que cada ranura tiene piezas Común, Rara, Épica y Legendaria. Los guardados antiguos colocan cada tesoro equipado en su ranura. El inventario se puede filtrar por ranura.
 - **Móvil en horizontal:** la portada se reorganiza a lo ancho (menús a los lados, la isla junto a su información y el botón Zarpar visible sin desplazar), la pantalla final pone el cartel a la izquierda y los botones a la derecha, y los menús y cartas son más compactos.
 - Modo admin oculto (7 toques en el título) y mejoras de UX y accesibilidad (foco, botones de 44 px, barra de vida, contraste).
