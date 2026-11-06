@@ -27,7 +27,7 @@ async function run(browser, base, lang, opts = {}) {
   await page.route(/fonts\.(googleapis|gstatic)\.com/, r => r.abort());
   await page.addInitScript(([lang, save]) => {
     if (!sessionStorage.getItem('init')) {
-      localStorage.clear(); localStorage.setItem('mdr_lang', lang);
+      localStorage.clear(); localStorage.setItem('mdr_lang', lang); localStorage.setItem('mdr_ayuda_vista', 'true');
       if (save !== null) localStorage.setItem('mdr_save', save);
       sessionStorage.setItem('init', '1');
     }
