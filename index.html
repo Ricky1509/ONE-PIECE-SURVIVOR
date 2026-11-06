@@ -212,6 +212,16 @@
   button:focus-visible,.card:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:3px;box-shadow:0 0 0 6px rgba(246,201,69,.6)}
   .padnav button.pfocus,.padnav .card.pfocus{outline:3px solid #fff;outline-offset:3px;box-shadow:0 0 0 6px rgba(246,201,69,.6)}
   button.adm{display:block;width:100%;margin:6px 0;text-align:left}
+  /* revisión de UX: objetivos táctiles de 44px, cabecera del móvil, zona segura, fin de partida */
+  .langbtn,#topbtns button,.arrow,.claim,button.ghost,button.ghost.sm{min-height:44px;min-width:44px}
+  #topbtns{top:max(18px,env(safe-area-inset-top))}
+  @media (max-width:760px){.home-top-r{flex-wrap:wrap;justify-content:center;max-width:100%}.goldpill{white-space:normal;text-align:center;font-size:14px}}
+  @media (max-height:700px){.poster{transform:none;padding:10px}.wanted{font-size:40px}#portrait{max-width:150px}}
+  #padhint{bottom:64px}
+  .card .key{opacity:.8}
+  #bPlay.pulse{animation:pulso 1.2s ease-in-out infinite}
+  @keyframes pulso{50%{transform:scale(1.07);box-shadow:0 0 0 6px rgba(246,201,69,.45),0 4px 0 #000}}
+  @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important}}
 </style>
 </head>
 <body>
@@ -220,7 +230,7 @@
   <button id="pw0" class="pw"><span class="pk">Q</span><span class="pi"></span><span class="pc"></span></button>
   <button id="pw1" class="pw"><span class="pk">E</span><span class="pi"></span><span class="pc"></span></button>
 </div>
-<div id="topbtns" style="display:none"><button id="bPause" aria-label="Pausa">⏸</button><button id="bMute" aria-label="Sonido">🔊</button></div>
+<div id="topbtns" style="display:none"><button id="bPause" aria-label="Pausar">⏸</button><button id="bMute" aria-label="Sonido">🔊</button></div>
 <div id="padhint" aria-live="polite"></div>
 
 <div id="menu" class="ov show home">

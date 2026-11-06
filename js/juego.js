@@ -25,7 +25,8 @@ const store = {
 // ---------- Sonido (sintetizado con Web Audio) ----------
 let AC = null, master = null, sfxBus = null, musBus = null, musFilter = null, noiseBuf = null, muted = store.get('mdr_muted', false);
 // Ajustes del jugador (volumen, accesibilidad); se guardan en 'mdr_opts'
-const OPT = Object.assign({ music: 0.55, sfx: 0.8, shake: true, flashes: true, nums: true }, store.get('mdr_opts', {}) || {});
+const RM = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+const OPT = Object.assign({ music: 0.55, sfx: 0.8, shake: !RM, flashes: !RM, nums: true }, store.get('mdr_opts', {}) || {});
 for (const k of ['music', 'sfx']) OPT[k] = Math.max(0, Math.min(1, +OPT[k] || 0));
 for (const k of ['shake', 'flashes', 'nums']) OPT[k] = OPT[k] !== false;
 function saveOpts() { store.set('mdr_opts', OPT); }
@@ -263,7 +264,7 @@ const MISIONES = CFG.misiones || [];
 const TESOROS = CFG.tesoros || {};
 const COFRE = Object.assign({ precio: 250, precio10: 2250, garantiaLegendario: 50, probabilidades: { comun: 60, raro: 28, epico: 10, legendario: 2 },
   reembolso: { comun: 30, raro: 80, epico: 200, legendario: 600 }, nivelMax: 5, ranuras: 3 }, CFG.cofre || {});
-const RAREZAS = { comun: { nombre: t('Común'), color: '#95a5a6' }, raro: { nombre: t('Raro'), color: '#3498db' }, epico: { nombre: t('Épico'), color: '#9b59b6' }, legendario: { nombre: t('Legendario'), color: '#f39c12' } };
+const RAREZAS = { comun: { nombre: t('Común'), color: '#95a5a6', txt: '#4d5656' }, raro: { nombre: t('Raro'), color: '#3498db', txt: '#1a5a8a' }, epico: { nombre: t('Épico'), color: '#9b59b6', txt: '#5b2c86' }, legendario: { nombre: t('Legendario'), color: '#f39c12', txt: '#8a4b00' } }; // txt: legible sobre las cartas claras
 const RAR_ORDER = ['comun', 'raro', 'epico', 'legendario'];
 const MP = CFG.mejorasPartida || {};
 const RP = Object.assign({ comun: 60, raro: 27, epico: 10, legendario: 3 }, CFG.rarezasPartida || {});
@@ -1162,8 +1163,8 @@ function drawEnemy(e) {
   const r = e.r, key = 'en:' + e.kind, o = SPR[key];
   if (o && o.ok) {
     drawShadow(ctx, e.x, e.y, r);
-    drawSprite(ctx, key, e.x, e.y, Math.floor(G.t * o.cfg.fps) + e.seed, G.p.x < e.x, e.flash > 0);
-  } else MDR_DIBUJO.enemigo(ctx, e.kind, e.x, e.y, r, e.ph, e.flash > 0);
+    drawSprite(ctx, key, e.x, e.y, Math.floor(G.t * o.cfg.fps) + e.seed, G.p.x < e.x, OPT.flashes && e.flash > 0);
+  } else MDR_DIBUJO.enemigo(ctx, e.kind, e.x, e.y, r, e.ph, OPT.flashes && e.flash > 0);
   if (e.bubbleT > 0) {
     const g = ctx.createRadialGradient(e.x - r * 0.4, e.y - r * 0.5, 1, e.x, e.y, r * 1.5);
     g.addColorStop(0, 'rgba(255,255,255,.6)'); g.addColorStop(0.7, 'rgba(160,230,255,.15)'); g.addColorStop(1, 'rgba(120,200,255,.5)');
@@ -1468,7 +1469,7 @@ function drawWorld() {
   const es = G.enemies.slice().sort((a, b) => a.y - b.y);
   for (const e of es) drawEnemy(e);
   // jugador
-  const blink = p.iframe > 0 && Math.floor(t * 20) % 2 === 0;
+  const blink = OPT.flashes && p.iframe > 0 && Math.floor(t * 20) % 2 === 0;
   for (const z of G.zones) {
     const zc = z.col || '#ffffff', al = Math.min(1, z.t * 2) * (z.kind === 'calma' ? 0.18 : z.kind === 'arena' ? 0.38 : 0.3);
     ctx.fillStyle = zc + Math.round(al * 255).toString(16).padStart(2, '0'); ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, TAU); ctx.fill();
@@ -1631,6 +1632,9 @@ function drawHUD() {
   ctx.textBaseline = 'middle'; ctx.lineWidth = 4; ctx.strokeStyle = '#000';
   const txt = (s, x, y, font, align = 'left', col = '#fff') => { ctx.font = font; ctx.textAlign = align; ctx.strokeText(s, x, y); ctx.fillStyle = col; ctx.fillText(s, x, y); };
   txt(t('Nivel') + ' ' + p.lvl, 10, 72, '900 15px Nunito, sans-serif', 'left', '#9fd8ff');
+  // vida del jugador, siempre visible arriba a la izquierda
+  { const fr = Math.max(0, Math.min(1, p.hp / G.st.maxHp)); ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(9, 81, 122, 12);
+    ctx.fillStyle = fr > 0.3 ? '#3ecf5a' : '#e5402f'; ctx.fillRect(10, 82, 120 * fr, 10); }
   if (G.orden) {
     const bw = Math.min(220, W * 0.4), bx = (W - bw) / 2, by = H - 22, col = G.orden.color;
     ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(bx, by, bw, 10);
@@ -1662,7 +1666,7 @@ function drawHUD() {
   // jefe
   const boss = G.enemies.find(e => e.boss);
   if (boss) {
-    const bw = Math.min(420, W - 40), bx = (W - bw) / 2, by = 64;
+    const bw = Math.min(420, W - 40), bx = (W - bw) / 2, by = W < 600 ? 100 : 64;
     ctx.fillStyle = 'rgba(0,0,0,.7)'; ctx.fillRect(bx, by, bw, 12);
     ctx.fillStyle = '#c0392b'; ctx.fillRect(bx, by, bw * Math.max(0, boss.hp / boss.maxHp), 12);
     ctx.strokeStyle = '#f6c945'; ctx.lineWidth = 2; ctx.strokeRect(bx, by, bw, 12);
@@ -1792,6 +1796,7 @@ function gameStep(now) {
   const dt = Math.min(0.033, (now - last) / 1000); last = now; frameDt = dt;
   menuT += dt;
   try { pollPad(dt); } catch (e) {}
+  syncInert();
   if (state === 'play' && G) { if (G.oath) { G.oath.t += dt; if (G.oath.t >= G.oath.dur) finishOath(); } else update(dt); }
   shake = Math.max(0, shake - dt * 30);
   draw();
@@ -1799,7 +1804,12 @@ function gameStep(now) {
 requestAnimationFrame(frame);
 
 // ---------- Interfaz ----------
-const show = id => $('#' + id).classList.add('show');
+// al abrir una pantalla, el foco pasa a su primer botón (teclado y lectores de pantalla)
+const focusFirst = id => requestAnimationFrame(() => { const ov = $('#' + id); if (!ov.classList.contains('show') || ov.contains(document.activeElement)) return; const el = ov.querySelector('button:not(:disabled), input'); if (el) el.focus({ preventScroll: true }); });
+const show = id => { $('#' + id).classList.add('show'); focusFirst(id); };
+// botones de la partida inactivos (sin foco) cuando hay una pantalla encima
+let inertOff = null;
+function syncInert() { const off = state !== 'play'; if (off === inertOff) return; inertOff = off; for (const id of ['topbtns', 'powers']) { const el = $('#' + id); if (el) el.inert = off; } }
 const hide = id => $('#' + id).classList.remove('show');
 function setTopBtns(v) { $('#topbtns').style.display = v ? 'flex' : 'none'; }
 function renderHome() {
@@ -1839,7 +1849,7 @@ function buildSelect() {
       btn.classList.add('locked'); if (!can) btn.classList.add('poor');
       btn.insertAdjacentHTML('beforeend', `<div class="cost">🔒 ${can ? t('Desbloquear') : t('Necesitas')}: 🪙 ${fmt(ch.price)}</div>`);
       btn.onclick = () => {
-        if (SAVE.berries < ch.price) return;
+        if (SAVE.berries < ch.price) { cantAfford(null, ch.price); return; }
         SAVE.berries -= ch.price; SAVE.desbloqueados.push(ch.id); saveGame(); snd('chest'); buildSelect();
       };
     }
@@ -1847,6 +1857,11 @@ function buildSelect() {
   });
 }
 let shopFrom = 'menu';
+// sin dinero suficiente: la carta tiembla y se dice cuánto falta
+function cantAfford(el, cost) {
+  if (el && el.animate) el.animate([{ transform: 'translateX(-5px)' }, { transform: 'translateX(5px)' }, { transform: 'none' }], { duration: 90, iterations: 3 });
+  snd('nope'); showHint(t('Te faltan {0} 🪙', fmt(cost - SAVE.berries)), 2);
+}
 function buildShop() {
   $('#shopGold').textContent = goldLine();
   const box = $('#upg'); box.innerHTML = '';
@@ -1855,10 +1870,12 @@ function buildShop() {
     const b = document.createElement('button'); b.className = 'card upg' + (maxed ? ' maxed' : can ? '' : ' poor');
     b.innerHTML = `<div class="ic">${m.icono}</div><div class="nm">${m.nombre}</div>
       <div class="pips">${'<i class="on"></i>'.repeat(l)}${'<i></i>'.repeat(m.max - l)}</div>
-      <div class="ds">${m.descripcion}</div><div class="cost">${maxed ? 'Máximo' : '🪙 ' + fmt(cost)}</div>`;
+      <div class="ds">${m.descripcion}</div><div class="cost">${maxed ? t('Máximo') : '🪙 ' + fmt(cost)}</div>`;
+    if (!maxed && !can) b.setAttribute('aria-disabled', 'true');
     b.onclick = () => {
-      if (maxed || SAVE.berries < cost) return;
-      SAVE.berries -= cost; SAVE.mejoras[k] = l + 1; SAVE.stats.mejorasCompradas++; saveGame(); snd('level'); buildShop();
+      if (maxed) return;
+      if (SAVE.berries < cost) { cantAfford(b, cost); return; }
+      SAVE.berries -= cost; SAVE.mejoras[k] = l + 1; SAVE.stats.mejorasCompradas++; saveGame(); snd('level'); buildShop(); const nb = $('#upg').children[[...Object.keys(MEJORAS)].indexOf(k)]; if (nb) nb.focus({ preventScroll: true });
     };
     box.appendChild(b);
   }
@@ -2033,6 +2050,7 @@ function buildOrdenes() {
 }
 
 function startGame(ch) {
+  $('#bPlay').classList.remove('pulse');
   initAudio(); if (AC && AC.state === 'suspended') AC.resume();
   if (!SAVE.stats.piratas.includes(ch.id)) { SAVE.stats.piratas.push(ch.id); saveGame(); }
   const isla = (G && state === 'over' && G.isla) || ISLAS[islaSel];
@@ -2084,7 +2102,7 @@ function openLevelUp(isChest) {
   cardsReadyAt = performance.now() + 250;
   curOpts.forEach((o, i) => {
     const inf = optInfo(o), b = document.createElement('button'); b.className = 'card';
-    b.innerHTML = `<div class="key">${i + 1}</div><div class="ic">${inf.icon}</div><div class="nm">${inf.name}</div><div class="lv"${inf.rar ? ` style="color:${RAREZAS[inf.rar].color}"` : ''}>${inf.tag}</div><div class="ds">${inf.desc}</div>`;
+    b.innerHTML = `<div class="key">${i + 1}</div><div class="ic">${inf.icon}</div><div class="nm">${inf.name}</div><div class="lv"${inf.rar ? ` style="color:${RAREZAS[inf.rar].txt}"` : ''}>${inf.tag}</div><div class="ds">${inf.desc}</div>`;
     if (inf.rar) { b.classList.add('rar-' + inf.rar); b.style.borderColor = RAREZAS[inf.rar].color; }
     if (inf.ordCol) { b.classList.add('ord-card'); b.style.borderColor = inf.ordCol; b.style.setProperty('--col', inf.ordCol); }
     b.onclick = () => chooseOpt(o);
@@ -2182,10 +2200,11 @@ const bMute = $('#bMute');
 const setMuteIcon = () => { bMute.textContent = muted ? '🔇' : '🔊'; };
 bMute.onclick = () => { muted = !muted; store.set('mdr_muted', muted); setMuteIcon(); applyVolumes(); };
 setMuteIcon(); refreshBest();
+if (!SAVE.partidas && !store.get('mdr_ayuda_vista', false)) { store.set('mdr_ayuda_vista', true); $('#bPlay').classList.add('pulse'); setTimeout(() => { if (state === 'menu') openPanel('ayuda', 'menu', () => {}); }, 400); }
 
 addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
-  if (k.startsWith('arrow') || k === ' ') e.preventDefault();
+  if (state === 'play' && (k.startsWith('arrow') || k === ' ')) e.preventDefault();
   keys.add(k);
   if (G && G.oath && state === 'play') { skipOath(); return; }
   if (state === 'play' && (k === 'q' || k === '1')) usePower(0);

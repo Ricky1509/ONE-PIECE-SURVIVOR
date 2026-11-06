@@ -84,6 +84,7 @@ window.MDR_I18N_EN = {
     '⚓ Astillero al máximo': '⚓ Max out the Shipyard', '🎁 Todos los tesoros a nivel máximo': '🎁 All treasures at max level',
     '📜 Órdenes en rango Leyenda': '📜 All Orders at Legend rank', '✅ Completar todas las misiones': '✅ Complete all missions',
     '🗑️ Borrar la partida guardada': '🗑️ Delete saved game', '¿Borrar toda la partida guardada?': 'Delete the whole saved game?', '✔ Hecho: {0}': '✔ Done: {0}',
+    'Pausar': 'Pause', 'Máximo': 'Max', 'Te faltan {0} 🪙': 'You need {0} more 🪙',
     controlsHint: `⌨️ WASD / arrows: move · Q / E: powers · Esc / P: pause · 1-4: pick upgrade<br>🎮 Controller: stick or d-pad: move · X / LB and Y / RB: powers · Start: pause · A: accept · B: back<br>📱 Touch: drag anywhere to move`,
   },
   config: {
