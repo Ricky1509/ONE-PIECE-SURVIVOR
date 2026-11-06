@@ -2050,9 +2050,16 @@ function getOptions(n) {
   const pc = Object.keys(G.passives).length;
   for (const id in PASSIVES) { const l = G.passives[id] || 0; if (l < PASSIVES[id].max && (l > 0 || pc < 6)) opts.push({ type: 'p', id, lvl: l + 1 }); }
   // mejoras con rareza: siempre disponibles; 1-2 por subida (más si ya no quedan armas/objetos)
-  const ids = shuffle(Object.keys(MP));
+  // `max` opcional: veces que se puede elegir por partida
+  const ids = shuffle(Object.keys(MP).filter(id => !MP[id].max || G.runPicks.filter(o => o.id === id).length < MP[id].max));
   const nb = opts.length ? (Math.random() < 0.5 ? 1 : 2) : n;
-  const res = shuffle(opts).slice(0, Math.max(0, n - nb));
+  // sorteo con peso: subir de nivel un arma que ya tienes es 3 veces más probable
+  const pool = opts.map(o => ({ o, w: o.type === 'w' && o.lvl > 1 ? 3 : 1 })), res = [];
+  while (res.length < Math.max(0, n - nb) && pool.length) {
+    let x = Math.random() * pool.reduce((a, q) => a + q.w, 0), i = 0;
+    while (i < pool.length - 1 && (x -= pool[i].w) >= 0) i++;
+    res.push(pool.splice(i, 1)[0].o);
+  }
   for (const id of ids) { if (res.length >= n) break; res.push({ type: 'b', id, rar: rollRunRarity() }); }
   if (!res.length) res.push({ type: 'heal' }, { type: 'gold' });
   return shuffle(res);
