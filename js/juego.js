@@ -240,7 +240,11 @@ function sanitizeSave(raw) {
     ordenSel: ords.has(s.ordenSel) ? s.ordenSel : undefined,
   };
   for (const [k, v] of Object.entries(obj(s.inv))) { const l = int(v, C.nivelMax || 5); if (TS[k] && l > 0) out.inv[k] = l; }
-  out.equip = ids(s.equip, id => !!out.inv[id]).slice(0, C.ranuras || 3);
+  // equipo: { ranura: tesoro }. Los guardados antiguos (lista de 3 huecos) se colocan cada uno en su ranura
+  out.equip = {};
+  const fits = (sl, id) => typeof id === 'string' && out.inv[id] && TS[id] && TS[id].ranura === sl;
+  if (Array.isArray(s.equip)) { for (const id of s.equip) if (TS[id] && out.inv[id] && !out.equip[TS[id].ranura]) out.equip[TS[id].ranura] = id; }
+  else for (const [sl, id] of Object.entries(obj(s.equip))) if (fits(sl, id)) out.equip[sl] = id;
   const st = obj(s.stats), cnt = o => map(o, k => EN[k], v => int(v));
   out.stats = {
     derribos: int(st.derribos), mejorTiempo: int(st.mejorTiempo, 86400), mejorNivel: int(st.mejorNivel, 1e6),
@@ -263,7 +267,8 @@ const FRUTAS = CFG.frutas || {};
 const MISIONES = CFG.misiones || [];
 const TESOROS = CFG.tesoros || {};
 const COFRE = Object.assign({ precio: 250, precio10: 2250, garantiaLegendario: 50, probabilidades: { comun: 60, raro: 28, epico: 10, legendario: 2 },
-  reembolso: { comun: 30, raro: 80, epico: 200, legendario: 600 }, nivelMax: 5, ranuras: 3 }, CFG.cofre || {});
+  reembolso: { comun: 30, raro: 80, epico: 200, legendario: 600 }, nivelMax: 5 }, CFG.cofre || {});
+const RANURAS = CFG.ranurasEquipo || [];
 const RAREZAS = { comun: { nombre: t('Común'), color: '#95a5a6', txt: '#4d5656' }, raro: { nombre: t('Raro'), color: '#3498db', txt: '#1a5a8a' }, epico: { nombre: t('Épico'), color: '#9b59b6', txt: '#5b2c86' }, legendario: { nombre: t('Legendario'), color: '#f39c12', txt: '#8a4b00' } }; // txt: legible sobre las cartas claras
 const RAR_ORDER = ['comun', 'raro', 'epico', 'legendario'];
 const MP = CFG.mejorasPartida || {};
@@ -272,13 +277,12 @@ function rollRunRarity() { let tot = RAR_ORDER.reduce((a, r) => a + (RP[r] || 0)
 const rs = k => (G && G.runStats[k]) || 0; // mejoras con rareza de esta partida
 SAVE.cobradas = SAVE.cobradas || [];
 SAVE.inv = SAVE.inv || {};
-SAVE.equip = (SAVE.equip || []).filter(id => TESOROS[id] && SAVE.inv[id]);
 SAVE.tiradas = SAVE.tiradas || 0; SAVE.pity = SAVE.pity || 0;
 SAVE.stats = Object.assign({ derribos: 0, mejorTiempo: 0, mejorNivel: 0, frutas: 0, jefes: {}, piratas: [], maxArmas: 0, mejorRecompensa: 0, porTipo: {},
   mejorasCompradas: Object.values(SAVE.mejoras).reduce((a, b) => a + b, 0) }, SAVE.stats || {});
 // Bonus de los tesoros equipados
 const itemMul = id => 1 + 0.25 * ((SAVE.inv[id] || 1) - 1);
-function ib(stat) { let v = 0; for (const id of SAVE.equip) { const it = TESOROS[id]; if (it && it.stats && it.stats[stat]) v += it.stats[stat] * itemMul(id); } return v; }
+function ib(stat) { let v = 0; for (const id of Object.values(SAVE.equip)) { const it = TESOROS[id]; if (it && it.stats && it.stats[stat]) v += it.stats[stat] * itemMul(id); } return v; }
 // Frutas activas
 const TODO_EFECTOS = ['dano', 'velocidad', 'experiencia', 'area'];
 function buffMul(efecto) {
@@ -1947,7 +1951,8 @@ const STAT_TXT = { dano: v => pct(v, 'daño'), vida: v => pct(v, 'vida'), veloci
 function itemText(id, lvl) { const it = TESOROS[id], m = 1 + 0.25 * ((lvl || 1) - 1); return Object.entries(it.stats || {}).map(([k, v]) => (STAT_TXT[k] || (x => k + ' ' + x))(v * m)).join(' · '); }
 function itemCard(id, extra = '') {
   const it = TESOROS[id], rz = RAREZAS[it.rareza] || RAREZAS.comun, lvl = SAVE.inv[id] || 0;
-  return `<div class="ic">${it.icono}</div><div class="nm">${it.nombre}</div><div class="rz" style="color:${rz.color}">${rz.nombre}${lvl ? ' · ' + t('Nv') + ' ' + lvl : ''}</div><div class="ds">${itemText(id, lvl || 1)}</div>${extra}`;
+  const sl = RANURAS.find(r => r.id === it.ranura);
+  return `<div class="ic">${it.icono}</div><div class="nm">${it.nombre}</div><div class="rz" style="color:${rz.txt || rz.color}">${sl ? sl.icono + ' ' + sl.nombre + ' · ' : ''}${rz.nombre}${lvl ? ' · ' + t('Nv') + ' ' + lvl : ''}</div><div class="ds">${itemText(id, lvl || 1)}</div>${extra}`;
 }
 
 // --- Cofre del Tesoro (gacha con Doblones de Faro) ---
@@ -1972,7 +1977,7 @@ function doPull(n) {
   SAVE.berries -= cost;
   const res = [];
   for (let i = 0; i < n; i++) res.push(pullOne(n === 10 && i === 9 ? 1 : 0));
-  for (const r of res) if (!SAVE.equip.includes(r.id) && SAVE.equip.length < COFRE.ranuras) SAVE.equip.push(r.id);
+  for (const r of res) { const sl = TESOROS[r.id].ranura; if (sl && !SAVE.equip[sl]) SAVE.equip[sl] = r.id; }
   saveGame(); snd('chest');
   const box = $('#pullRes'); box.innerHTML = '';
   res.forEach((r, i) => {
@@ -1994,30 +1999,49 @@ function buildCofre(clear = true) {
 }
 
 // --- Inventario ---
+let invFiltro = '';   // ranura elegida para filtrar los tesoros ('' = todas)
 function buildInventario() {
   $('#invGold').textContent = goldLine();
+  // ranuras del cuerpo: tocar una con tesoro lo quita; tocar una vacía filtra los tesoros que caben en ella
   const slots = $('#invSlots'); slots.innerHTML = '';
-  for (let i = 0; i < COFRE.ranuras; i++) {
-    const id = SAVE.equip[i], d = document.createElement('button'); d.className = 'slot';
-    if (id) { const rz = RAREZAS[TESOROS[id].rareza]; d.style.borderColor = rz.color; d.innerHTML = `<span class="si">${TESOROS[id].icono}</span><small>${TESOROS[id].nombre}</small>`; d.onclick = () => { SAVE.equip.splice(i, 1); saveGame(); buildInventario(); }; }
-    else { d.innerHTML = '<span class="si">➕</span><small>' + t('Vacío') + '</small>'; d.disabled = true; }
+  for (const sl of RANURAS) {
+    const id = SAVE.equip[sl.id], d = document.createElement('button'); d.className = 'slot' + (invFiltro === sl.id ? ' sel' : '');
+    const head = `<em>${sl.icono} ${sl.nombre}</em>`;
+    if (id) {
+      const rz = RAREZAS[TESOROS[id].rareza] || RAREZAS.comun; d.style.borderColor = rz.color;
+      d.innerHTML = `${head}<span class="si">${TESOROS[id].icono}</span><small>${TESOROS[id].nombre}</small>`;
+      d.title = t('Quitar'); d.onclick = () => { delete SAVE.equip[sl.id]; saveGame(); snd('ui'); buildInventario(); };
+    } else {
+      d.innerHTML = `${head}<span class="si empty">➕</span><small>${t('Vacío')}</small>`;
+      d.onclick = () => { invFiltro = invFiltro === sl.id ? '' : sl.id; snd('ui'); buildInventario(); };
+    }
     slots.appendChild(d);
   }
   const tot = {};
-  for (const id of SAVE.equip) for (const [k, v] of Object.entries(TESOROS[id].stats || {})) tot[k] = (tot[k] || 0) + v * itemMul(id);
+  for (const id of Object.values(SAVE.equip)) for (const [k, v] of Object.entries(TESOROS[id].stats || {})) tot[k] = (tot[k] || 0) + v * itemMul(id);
   $('#invTotal').textContent = Object.keys(tot).length ? t('Bonus equipados: ') + Object.entries(tot).map(([k, v]) => (STAT_TXT[k] || (x => k))(v)).join(' · ') : t('Equipa tesoros para obtener bonus en todas tus partidas.');
+  // filtro por ranura
+  const fl = $('#invFiltro'); fl.innerHTML = '';
+  for (const op of [{ id: '', icono: '✳️', nombre: t('Todo') }, ...RANURAS]) {
+    const b = document.createElement('button'); b.className = 'ghost sm' + (invFiltro === op.id ? ' on' : ''); b.textContent = `${op.icono} ${op.nombre}`;
+    b.onclick = () => { invFiltro = op.id; buildInventario(); }; fl.appendChild(b);
+  }
+  // tesoros: ordenados por ranura y rareza; tocar uno lo equipa en su ranura (sustituye al que hubiera) o lo quita
   const grid = $('#invGrid'); grid.innerHTML = '';
-  const ids = Object.keys(TESOROS).sort((a, b) => RAR_ORDER.indexOf(TESOROS[b].rareza) - RAR_ORDER.indexOf(TESOROS[a].rareza) || (SAVE.inv[b] ? 1 : 0) - (SAVE.inv[a] ? 1 : 0));
+  const order = id => RANURAS.findIndex(r => r.id === TESOROS[id].ranura);
+  const ids = Object.keys(TESOROS).filter(id => !invFiltro || TESOROS[id].ranura === invFiltro)
+    .sort((a, b) => order(a) - order(b) || RAR_ORDER.indexOf(TESOROS[b].rareza) - RAR_ORDER.indexOf(TESOROS[a].rareza));
   for (const id of ids) {
-    const owned = (SAVE.inv[id] || 0) > 0, eq = SAVE.equip.includes(id), rz = RAREZAS[TESOROS[id].rareza] || RAREZAS.comun;
+    const it = TESOROS[id], owned = (SAVE.inv[id] || 0) > 0, eq = SAVE.equip[it.ranura] === id, rz = RAREZAS[it.rareza] || RAREZAS.comun;
+    const sl = RANURAS.find(r => r.id === it.ranura);
     const b = document.createElement('button'); b.className = 'card loot' + (owned ? '' : ' unknown') + (eq ? ' equipped' : ''); b.style.borderColor = rz.color;
-    b.innerHTML = owned ? itemCard(id, `<div class="tag">${eq ? t('✔ Equipado') : t('Equipar')}</div>`) : `<div class="ic">❔</div><div class="nm">???</div><div class="rz" style="color:${rz.color}">${rz.nombre}</div>`;
+    b.innerHTML = owned ? itemCard(id, `<div class="tag">${eq ? t('✔ Equipado') : t('Equipar')}</div>`)
+      : `<div class="ic">❔</div><div class="nm">???</div><div class="rz" style="color:${rz.txt || rz.color}">${sl ? sl.icono + ' ' + sl.nombre + ' · ' : ''}${rz.nombre}</div>`;
+    if (!owned) b.setAttribute('aria-disabled', 'true');
     b.onclick = () => {
       if (!owned) return;
-      if (eq) SAVE.equip = SAVE.equip.filter(x => x !== id);
-      else if (SAVE.equip.length < COFRE.ranuras) SAVE.equip.push(id);
-      else { $('#invTotal').textContent = t('Tienes las {0} ranuras ocupadas: toca un tesoro equipado para quitarlo.', COFRE.ranuras); return; }
-      saveGame(); buildInventario();
+      if (eq) delete SAVE.equip[it.ranura]; else SAVE.equip[it.ranura] = id;
+      saveGame(); snd(eq ? 'ui' : 'shell'); buildInventario();
     };
     grid.appendChild(b);
   }

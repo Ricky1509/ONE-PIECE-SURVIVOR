@@ -85,6 +85,7 @@ window.MDR_I18N_EN = {
     '📜 Órdenes en rango Leyenda': '📜 All Orders at Legend rank', '✅ Completar todas las misiones': '✅ Complete all missions',
     '🗑️ Borrar la partida guardada': '🗑️ Delete saved game', '¿Borrar toda la partida guardada?': 'Delete the whole saved game?', '✔ Hecho: {0}': '✔ Done: {0}',
     'Pausar': 'Pause', 'Máximo': 'Max', 'Te faltan {0} 🪙': 'You need {0} more 🪙',
+    'Quitar': 'Remove', 'Todo': 'All',
     controlsHint: `⌨️ WASD / arrows: move · Q / E: powers · Esc / P: pause · 1-4: pick upgrade<br>🎮 Controller: stick or d-pad: move · X / LB and Y / RB: powers · Start: pause · A: accept · B: back<br>📱 Touch: drag anywhere to move`,
   },
   config: {
@@ -163,7 +164,12 @@ window.MDR_I18N_EN = {
       amuleto: { nombre: 'Salt Amulet' }, monedero: { nombre: 'Silk Purse' }, perla: { nombre: 'Abyss Pearl' }, mapa: { nombre: 'Star Chart' },
       caparazon: { nombre: 'Shell Cuirass' }, pluma: { nombre: 'Albatross Feather' }, corona: { nombre: "Kraken King's Crown" },
       timon: { nombre: 'Helm of the Seven Winds' }, doblon: { nombre: 'Cursed Coin' },
+      tricornio: { nombre: 'Worn Tricorn' }, casco: { nombre: 'Boarding Helmet' }, tridente: { nombre: 'Coral Trident' }, hoja: { nombre: 'Storm Blade' },
+      capa: { nombre: "Admiral's Coat" }, guantes: { nombre: 'Boarding Gloves' }, garfio: { nombre: 'Silver Hook' }, tentaculo: { nombre: 'Hands of the Kraken' },
+      cubierta: { nombre: 'Deck Boots' }, sandalias: { nombre: 'Coral Sandals' }, leguas: { nombre: 'Seven-League Boots' }, colmillo: { nombre: 'Fang Pendant' },
     },
+    ranurasEquipo: { sombrero: { nombre: 'Hat' }, arma: { nombre: 'Weapon' }, abrigo: { nombre: 'Coat' }, guantes: { nombre: 'Gloves' },
+      botas: { nombre: 'Boots' }, amuleto: { nombre: 'Amulet' }, reliquia: { nombre: 'Relic' } },
     misiones: {
       k1: { nombre: 'First blood', descripcion: 'Defeat 100 enemies in total' }, k2: { nombre: 'Scourge of the Navy', descripcion: 'Defeat 1,000 enemies in total' },
       k3: { nombre: 'Legend of the sea', descripcion: 'Defeat 10,000 enemies in total' }, t1: { nombre: 'Survivor', descripcion: 'Survive 3 minutes in a run' },

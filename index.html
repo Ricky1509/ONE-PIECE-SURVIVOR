@@ -117,7 +117,12 @@
   .card.rar-raro{background:linear-gradient(180deg,#e3f1fb,#b9d9f2)}
   .slots{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
   .slot{width:110px;min-height:92px;border:3px dashed rgba(255,255,255,.4);border-radius:12px;background:rgba(0,0,0,.25);color:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:6px}
-  .slot .si{font-size:30px}.slot small{font-size:12px;font-weight:700}
+  .slot .si{font-size:30px}.slot .si.empty{opacity:.35;font-size:22px}.slot small{font-size:12px;font-weight:700;line-height:1.15}
+  .slot em{font-style:normal;font-size:11px;font-weight:900;color:#ffe08a;letter-spacing:.3px;text-transform:uppercase}
+  .slot.sel{border-color:var(--gold);box-shadow:0 0 0 3px rgba(246,201,69,.45)}
+  #invSlots{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;max-width:820px;margin:0 auto}
+  #invSlots .slot{width:auto}
+  #invFiltro{gap:2px;margin:4px 0}
   .slot:not(:disabled){border-style:solid}
   .ov.home{background:radial-gradient(ellipse at center,rgba(5,18,32,.15),rgba(5,18,32,.7));padding:12px 14px}
   .home-top{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:1100px;gap:10px}
@@ -222,6 +227,9 @@
   #bPlay.pulse{animation:pulso 1.2s ease-in-out infinite}
   @keyframes pulso{50%{transform:scale(1.07);box-shadow:0 0 0 6px rgba(246,201,69,.45),0 4px 0 #000}}
   @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important}}
+  /* inventario compacto en móvil vertical: 4 ranuras por fila */
+  @media (max-width:520px){#invSlots{grid-template-columns:repeat(4,1fr);gap:6px}#invSlots .slot{min-height:74px;padding:4px 2px;gap:2px}#invSlots .slot .si{font-size:22px}#invSlots .slot small{font-size:10px}#invSlots .slot em{font-size:9px;letter-spacing:0}}
+  @media (orientation:landscape) and (max-height:540px){#invSlots{grid-template-columns:repeat(7,1fr);gap:6px}#invSlots .slot{min-height:70px;padding:4px 2px}#invSlots .slot .si{font-size:22px}#invSlots .slot small{font-size:10px}#invSlots .slot em{font-size:9px}}
   /* ===== Móvil en horizontal (pantallas bajas): todo reorganizado a lo ancho ===== */
   @media (orientation:landscape) and (max-height:540px){
     .ov{padding:8px 12px}
@@ -392,6 +400,7 @@
   <div id="invSlots" class="slots"></div>
   <div id="invTotal" class="rates"></div>
   <h3>Tus tesoros</h3>
+  <div id="invFiltro" class="row"></div>
   <div id="invGrid" class="cards loots"></div>
   <button class="big back">Volver</button>
 </div></div>

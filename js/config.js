@@ -384,7 +384,9 @@ window.MDR_CONFIG = {
   //  COFRE DEL TESORO (gacha con Doblones de Faro) E INVENTARIO
   //  Cada tirada da un tesoro. Si ya lo tienes, sube de nivel (máx. nivelMax,
   //  cada nivel +25% de su efecto); si está al máximo, devuelve Doblones de Faro.
-  //  Los tesoros equipados (hasta `ranuras`) dan sus bonus en todas las partidas.
+  //  Equipo: una ranura por parte del cuerpo (ver `ranurasEquipo`); cada tesoro
+  //  indica su `ranura` y solo puede ir en ella. Los equipados dan sus bonus en
+  //  todas las partidas.
   //  stats: dano, vida, velocidad, area, iman, experiencia, berries (fracción: 0.05 = 5%),
   //         recarga (fracción que se reduce), armadura y regen (valor fijo)
   // ---------------------------------------------------------------
@@ -395,26 +397,53 @@ window.MDR_CONFIG = {
     probabilidades: { comun: 60, raro: 28, epico: 10, legendario: 2 },
     reembolso: { comun: 30, raro: 80, epico: 200, legendario: 600 },
     nivelMax: 5,
-    ranuras: 3,
   },
+  ranurasEquipo: [
+    { id: 'sombrero', nombre: 'Sombrero', icono: '🎩' },
+    { id: 'arma',     nombre: 'Arma',     icono: '⚔️' },
+    { id: 'abrigo',   nombre: 'Abrigo',   icono: '🧥' },
+    { id: 'guantes',  nombre: 'Guantes',  icono: '🧤' },
+    { id: 'botas',    nombre: 'Botas',    icono: '🥾' },
+    { id: 'amuleto',  nombre: 'Amuleto',  icono: '📿' },
+    { id: 'reliquia', nombre: 'Reliquia', icono: '🧭' },
+  ],
   tesoros: {
-    lona:      { nombre: 'Parche de Lona',       icono: '🩹', rareza: 'comun',      stats: { vida: 0.05 } },
-    botas:     { nombre: 'Botas Remendadas',     icono: '🥾', rareza: 'comun',      stats: { velocidad: 0.03 } },
-    brujula:   { nombre: 'Brújula Vieja',        icono: '🧭', rareza: 'comun',      stats: { iman: 0.10 } },
-    pedernal:  { nombre: 'Pedernal',             icono: '🪨', rareza: 'comun',      stats: { dano: 0.03 } },
-    reloj:     { nombre: 'Reloj Oxidado',        icono: '⌚', rareza: 'comun',      stats: { recarga: 0.02 } },
-    sable:     { nombre: 'Sable de Bronce',      icono: '🗡️', rareza: 'raro',       stats: { dano: 0.07 } },
-    chaleco:   { nombre: 'Chaleco de Cuero',     icono: '🦺', rareza: 'raro',       stats: { armadura: 1 } },
-    catalejo:  { nombre: 'Catalejo de Latón',    icono: '🔭', rareza: 'raro',       stats: { area: 0.08 } },
-    amuleto:   { nombre: 'Amuleto de Sal',       icono: '🧿', rareza: 'raro',       stats: { regen: 0.3 } },
-    monedero:  { nombre: 'Monedero de Seda',     icono: '👛', rareza: 'raro',       stats: { berries: 0.10 } },
-    perla:     { nombre: 'Perla del Abismo',     icono: '🔮', rareza: 'epico',      stats: { dano: 0.12, area: 0.05 } },
-    mapa:      { nombre: 'Mapa Estelar',         icono: '🗺️', rareza: 'epico',      stats: { experiencia: 0.15 } },
-    caparazon: { nombre: 'Coraza de Caparazón',  icono: '🐢', rareza: 'epico',      stats: { armadura: 2, vida: 0.10 } },
-    pluma:     { nombre: 'Pluma de Albatros',    icono: '🪶', rareza: 'epico',      stats: { velocidad: 0.08, recarga: 0.05 } },
-    corona:    { nombre: 'Corona del Rey Kraken', icono: '👑', rareza: 'legendario', stats: { dano: 0.15, vida: 0.15 } },
-    timon:     { nombre: 'Timón de los Siete Vientos', icono: '☸️', rareza: 'legendario', stats: { velocidad: 0.12, recarga: 0.10, iman: 0.15 } },
-    doblon:    { nombre: 'Moneda Maldita',       icono: '🪙', rareza: 'legendario', stats: { berries: 0.30, experiencia: 0.20 } },
+    // Sombrero
+    tricornio: { nombre: 'Tricornio Gastado',    icono: '🎩', rareza: 'comun',      ranura: 'sombrero', stats: { vida: 0.04 } },
+    casco:     { nombre: 'Casco de Abordaje',    icono: '🪖', rareza: 'raro',       ranura: 'sombrero', stats: { armadura: 1 } },
+    pluma:     { nombre: 'Pluma de Albatros',    icono: '🪶', rareza: 'epico',      ranura: 'sombrero', stats: { velocidad: 0.08, recarga: 0.05 } },
+    corona:    { nombre: 'Corona del Rey Kraken', icono: '👑', rareza: 'legendario', ranura: 'sombrero', stats: { dano: 0.15, vida: 0.15 } },
+    // Arma
+    pedernal:  { nombre: 'Pedernal',             icono: '🪨', rareza: 'comun',      ranura: 'arma',     stats: { dano: 0.03 } },
+    sable:     { nombre: 'Sable de Bronce',      icono: '🗡️', rareza: 'raro',       ranura: 'arma',     stats: { dano: 0.07 } },
+    tridente:  { nombre: 'Tridente de Coral',    icono: '🔱', rareza: 'epico',      ranura: 'arma',     stats: { dano: 0.10, area: 0.06 } },
+    hoja:      { nombre: 'Hoja de la Tormenta',  icono: '⚔️', rareza: 'legendario', ranura: 'arma',     stats: { dano: 0.18, recarga: 0.06 } },
+    // Abrigo
+    lona:      { nombre: 'Parche de Lona',       icono: '🩹', rareza: 'comun',      ranura: 'abrigo',   stats: { vida: 0.05 } },
+    chaleco:   { nombre: 'Chaleco de Cuero',     icono: '🦺', rareza: 'raro',       ranura: 'abrigo',   stats: { armadura: 1 } },
+    caparazon: { nombre: 'Coraza de Caparazón',  icono: '🐢', rareza: 'epico',      ranura: 'abrigo',   stats: { armadura: 2, vida: 0.10 } },
+    capa:      { nombre: 'Casaca del Almirante', icono: '🧥', rareza: 'legendario', ranura: 'abrigo',   stats: { vida: 0.18, armadura: 2 } },
+    // Guantes
+    reloj:     { nombre: 'Reloj Oxidado',        icono: '⌚', rareza: 'comun',      ranura: 'guantes',  stats: { recarga: 0.02 } },
+    guantes:   { nombre: 'Guantes de Abordaje',  icono: '🧤', rareza: 'raro',       ranura: 'guantes',  stats: { dano: 0.04, recarga: 0.03 } },
+    garfio:    { nombre: 'Garfio de Plata',      icono: '🪝', rareza: 'epico',      ranura: 'guantes',  stats: { dano: 0.08, area: 0.06 } },
+    tentaculo: { nombre: 'Manos del Kraken',     icono: '🐙', rareza: 'legendario', ranura: 'guantes',  stats: { recarga: 0.10, dano: 0.08 } },
+    // Botas
+    botas:     { nombre: 'Botas Remendadas',     icono: '🥾', rareza: 'comun',      ranura: 'botas',    stats: { velocidad: 0.03 } },
+    cubierta:  { nombre: 'Botas de Cubierta',    icono: '👢', rareza: 'raro',       ranura: 'botas',    stats: { velocidad: 0.05 } },
+    sandalias: { nombre: 'Sandalias de Coral',   icono: '🩴', rareza: 'epico',      ranura: 'botas',    stats: { velocidad: 0.08, iman: 0.10 } },
+    leguas:    { nombre: 'Botas de Siete Leguas', icono: '👞', rareza: 'legendario', ranura: 'botas',   stats: { velocidad: 0.14, recarga: 0.05 } },
+    // Amuleto
+    colmillo:  { nombre: 'Colgante de Colmillo', icono: '🦷', rareza: 'comun',      ranura: 'amuleto',  stats: { vida: 0.03, dano: 0.02 } },
+    amuleto:   { nombre: 'Amuleto de Sal',       icono: '🧿', rareza: 'raro',       ranura: 'amuleto',  stats: { regen: 0.3 } },
+    perla:     { nombre: 'Perla del Abismo',     icono: '🔮', rareza: 'epico',      ranura: 'amuleto',  stats: { dano: 0.12, area: 0.05 } },
+    doblon:    { nombre: 'Moneda Maldita',       icono: '🪙', rareza: 'legendario', ranura: 'amuleto',  stats: { berries: 0.30, experiencia: 0.20 } },
+    // Reliquia
+    brujula:   { nombre: 'Brújula Vieja',        icono: '🧭', rareza: 'comun',      ranura: 'reliquia', stats: { iman: 0.10 } },
+    catalejo:  { nombre: 'Catalejo de Latón',    icono: '🔭', rareza: 'raro',       ranura: 'reliquia', stats: { area: 0.08 } },
+    monedero:  { nombre: 'Monedero de Seda',     icono: '👛', rareza: 'raro',       ranura: 'reliquia', stats: { berries: 0.10 } },
+    mapa:      { nombre: 'Mapa Estelar',         icono: '🗺️', rareza: 'epico',      ranura: 'reliquia', stats: { experiencia: 0.15 } },
+    timon:     { nombre: 'Timón de los Siete Vientos', icono: '☸️', rareza: 'legendario', ranura: 'reliquia', stats: { velocidad: 0.12, recarga: 0.10, iman: 0.15 } },
   },
 
   // ---------------------------------------------------------------
