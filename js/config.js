@@ -377,7 +377,7 @@ window.MDR_CONFIG = {
     iman:        { nombre: 'Olfato de Tesoro',  icono: '🧲', stat: 'iman',        valores: [0.10, 0.15, 0.25, 0.40] },
     armadura:    { nombre: 'Piel de Tiburón',   icono: '🛡️', stat: 'armadura',    valores: [0.5, 1, 1.5, 2.5] },
     regen:       { nombre: 'Ron Curativo',      icono: '🍶', stat: 'regen',       valores: [0.15, 0.25, 0.4, 0.7] },
-    berries:     { nombre: 'Bolsillos Hondos',  icono: '🪙', stat: 'berries',     valores: [0.05, 0.08, 0.12, 0.20] },
+    berries:     { nombre: 'Bolsillos Hondos',  icono: '🪙', stat: 'berries',     valores: [0.05, 0.08, 0.12, 0.20], max: 4 }, // máx. 4 por partida
   },
 
   // ---------------------------------------------------------------

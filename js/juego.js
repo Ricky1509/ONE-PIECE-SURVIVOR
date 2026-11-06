@@ -2050,9 +2050,16 @@ function getOptions(n) {
   const pc = Object.keys(G.passives).length;
   for (const id in PASSIVES) { const l = G.passives[id] || 0; if (l < PASSIVES[id].max && (l > 0 || pc < 6)) opts.push({ type: 'p', id, lvl: l + 1 }); }
   // mejoras con rareza: siempre disponibles; 1-2 por subida (más si ya no quedan armas/objetos)
-  const ids = shuffle(Object.keys(MP));
+  // `max` opcional: veces que se puede elegir por partida
+  const ids = shuffle(Object.keys(MP).filter(id => !MP[id].max || G.runPicks.filter(o => o.id === id).length < MP[id].max));
   const nb = opts.length ? (Math.random() < 0.5 ? 1 : 2) : n;
-  const res = shuffle(opts).slice(0, Math.max(0, n - nb));
+  // sorteo con peso: subir de nivel un arma que ya tienes es 3 veces más probable
+  const pool = opts.map(o => ({ o, w: o.type === 'w' && o.lvl > 1 ? 3 : 1 })), res = [];
+  while (res.length < Math.max(0, n - nb) && pool.length) {
+    let x = Math.random() * pool.reduce((a, q) => a + q.w, 0), i = 0;
+    while (i < pool.length - 1 && (x -= pool[i].w) >= 0) i++;
+    res.push(pool.splice(i, 1)[0].o);
+  }
   for (const id of ids) { if (res.length >= n) break; res.push({ type: 'b', id, rar: rollRunRarity() }); }
   if (!res.length) res.push({ type: 'heal' }, { type: 'gold' });
   return shuffle(res);
@@ -2293,6 +2300,31 @@ function pollPad(dt) {
 }
 addEventListener('gamepadconnected', () => showHint(t('🎮 Mando conectado'), 3));
 addEventListener('pointerdown', () => { if (PAD.on) { PAD.on = false; document.body.classList.remove('padnav'); } }, true);
+
+
+// ---------- Modo admin (oculto): toca 7 veces el título de la portada ----------
+let admTaps = 0, admT = 0;
+$('.home-title').addEventListener('click', () => {
+  const now = performance.now(); admTaps = now - admT < 800 ? admTaps + 1 : 1; admT = now;
+  if (admTaps >= 7 && state === 'menu') { admTaps = 0; $('#admMsg').textContent = ''; openPanel('admin', 'menu', () => {}); }
+});
+const ADMIN = {
+  oro() { SAVE.berries += 100000; },
+  todo() {
+    SAVE.desbloqueados = CHARS.map(c => c.id); SAVE.ordenDesb = ORDENES.map(o => o.id);
+    for (const is of ISLAS) SAVE.islas[is.id] = Math.max(SAVE.islas[is.id] || 0, 600);
+  },
+  mejoras() { for (const k in MEJORAS) SAVE.mejoras[k] = MEJORAS[k].max || 0; },
+  tesoros() { for (const k in TESOROS) SAVE.inv[k] = COFRE.nivelMax; },
+  rangos() { const top = OS.puntosRango[OS.puntosRango.length - 1]; for (const o of ORDENES) SAVE.ordenes[o.id] = { pts: Math.max(top, ordenPts(o.id)) }; },
+  misiones() { for (const m of MISIONES) if (!SAVE.cobradas.includes(m.id)) { SAVE.cobradas.push(m.id); SAVE.berries += m.recompensa || 0; } },
+  borrar() { if (!confirm(t('¿Borrar toda la partida guardada?'))) return false; store.set(SAVE_KEY, {}); localStorage.removeItem(SAVE_KEY); location.reload(); return false; },
+};
+document.querySelectorAll('#admin .adm').forEach(b => b.onclick = () => {
+  const f = ADMIN[b.dataset.a]; if (!f || f() === false) return;
+  saveGame(); refreshBest(); snd('chest'); $('#admMsg').textContent = t('✔ Hecho: {0}', b.textContent);
+});
+$('#admin .back').onclick = () => closePanel('admin');
 
 // gancho de pruebas
 window.__mdr = { get G() { return G; }, get state() { return state; }, get SAVE() { return SAVE; }, get OPT() { return OPT; }, end: won => { if (G && state === 'play') endGame(!!won); }, oath: r => { if (G && G.orden) startOath(r); } };
