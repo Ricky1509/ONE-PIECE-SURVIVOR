@@ -222,6 +222,53 @@
   #bPlay.pulse{animation:pulso 1.2s ease-in-out infinite}
   @keyframes pulso{50%{transform:scale(1.07);box-shadow:0 0 0 6px rgba(246,201,69,.45),0 4px 0 #000}}
   @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important}}
+  /* ===== Móvil en horizontal (pantallas bajas): todo reorganizado a lo ancho ===== */
+  @media (orientation:landscape) and (max-height:540px){
+    .ov{padding:8px 12px}
+    .panel{padding:10px 16px;border-radius:14px}
+    h1{font-size:40px} h2{font-size:28px;margin-bottom:2px}
+    .sub{margin:4px 0 8px}
+    .hint{margin-top:8px}
+    .cards{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:8px 0}
+    .card{padding:8px 8px 10px}
+    .card .ic{font-size:30px}
+    .card .nm{font-size:20px}
+    .card .ds{font-size:12.5px;margin-top:3px}
+    #chars{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+    #chars .card canvas{width:84px!important;height:70px!important}
+    /* portada: barra superior en una fila; menús a los lados; la isla junto a su información */
+    .ov.home{padding:6px 12px}
+    .home-top{flex-direction:row;gap:8px}
+    .home-title{font-size:26px}
+    .home-top-r{flex-wrap:nowrap;max-width:none}
+    .goldpill{font-size:13px;padding:4px 10px;white-space:nowrap}
+    .home-grid{grid-template-columns:96px minmax(0,1fr) 96px;gap:8px;margin:4px 0}
+    .home-side{flex-direction:column;gap:6px}
+    .home .mbtn,.home-side .mbtn{padding:4px 2px;font-size:20px;flex:none}
+    .mbtn span{font-size:14px}
+    .home-center{order:0;display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:14px;align-items:center}
+    .home-center .isla-nav{grid-row:1 / span 6;width:auto;gap:6px}
+    .isla-card{flex:none;width:min(29vw,calc((100vh - 120px) * 1.65));border-width:3px;border-radius:14px}
+    .arrow{width:44px;height:44px;font-size:16px}
+    .isla-nombre{font-size:26px;margin-top:0}
+    .isla-desc{font-size:12.5px;margin-top:4px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .isla-info{font-size:12px;margin:4px 0}
+    .home-orden{font-size:12px;margin-bottom:4px}
+    #bPlay{font-size:24px;padding:6px 26px;margin:2px}
+    .home-best{font-size:12px}
+    /* fin de partida: cartel a la izquierda; resultado y botones a la derecha */
+    #over.show{display:grid;grid-template-columns:auto minmax(0,440px);column-gap:22px;align-content:center;justify-content:center}
+    #over>*{margin:0!important}
+    #over .poster{grid-row:1 / span 3;width:200px;padding:8px}
+    #over .wanted{font-size:34px} #over .dora{font-size:13px;margin-bottom:4px}
+    #portrait{max-width:130px}
+    #over .pname{font-size:22px} #over .pbounty{font-size:22px}
+    #oMsg{font-size:15px;margin:0 0 6px!important}
+    #over .row .big{font-size:20px;padding:6px 14px}
+    /* partida: botones de poder algo más pequeños para dejar ver el mapa */
+    .pw{width:58px;height:58px}
+    #powers{bottom:24px;right:max(12px,env(safe-area-inset-right))}
+  }
 </style>
 </head>
 <body>
