@@ -1,6 +1,6 @@
 // Service worker: guarda el juego en caché para jugar sin conexión.
 // Sube VERSION cada vez que publiques cambios para que los móviles se actualicen.
-const VERSION = 'mdr-v13';
+const VERSION = 'mdr-v14';
 const ARCHIVOS = [
   './', 'index.html', 'manifest.webmanifest',
   'js/config.js', 'js/i18n-en.js', 'js/i18n.js', 'js/dibujo.js', 'js/islas.js', 'js/juego.js',

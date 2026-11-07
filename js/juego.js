@@ -1457,7 +1457,7 @@ function drawWorld() {
     if (it.k === 'chest') { drawChest(it.x, it.y, t); continue; }
     if (it.k === 'concha') { drawShell(ctx, it.x, it.y + Math.sin(t * 5 + it.x) * 2, t); continue; }
     if (it.k === 'fruit') { drawFruit(ctx, it.x, it.y + Math.sin(t * 5) * 2, 9, FRUTAS[it.f].color, t); continue; }
-    ctx.font = '22px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = '22px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff'; // Safari tiñe los emojis con el fillStyle
     ctx.fillText(it.k === 'food' ? '🍗' : '🧲', it.x, it.y + Math.sin(t * 5) * 2);
   }
   // aura de fuego
@@ -2082,11 +2082,14 @@ const CFX = (() => {
       const hg = c.createRadialGradient(cx, iy, 4, cx, iy, 70 * s * sc); hg.addColorStop(0, col + 'ee'); hg.addColorStop(1, col + '00');
       c.fillStyle = hg; c.beginPath(); c.arc(cx, iy, 70 * s * sc, 0, TAU); c.fill();
       c.font = `${Math.round(54 * s * sc)}px system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
+      // Safari tiñe los emojis con el fillStyle activo (aquí el degradado del halo): relleno opaco neutro
+      c.fillStyle = '#fff'; c.globalAlpha = 1;
       c.fillText(it.icono, cx, iy + Math.sin(t * 3) * 3 * s);
       // otros tesoros (tirada x10): salen en abanico
       if (res.length > 1) res.forEach((r, i) => {
         if (r === best) return; const a = -Math.PI + (i + 0.5) / res.length * Math.PI, R = 95 * s * e;
         c.globalAlpha = q; c.font = `${Math.round(22 * s)}px system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
+        c.fillStyle = '#fff';
         c.fillText(TESOROS[r.id].icono, cx + Math.cos(a) * R * 1.5, iy + 20 * s + Math.sin(a) * R * 0.7); c.globalAlpha = 1;
       });
       if (ti > 0.45) {
